@@ -1,3 +1,5 @@
+> **Escopo ativo:** para a v0.1, siga primeiro `docs/11_FAST_TRACK.md`. A especificação abaixo descreve o alvo do MVP endurecido; waveform, player/mixer, Model Manager e Diagnostics não bloqueiam o Fast Track.
+
 # UI Spec — MVP
 
 ## Princípio
