@@ -1,3 +1,5 @@
+> **Escopo ativo:** o gate completo deste documento continua sendo o alvo do produto endurecido. Para o Fast Track v0.1, use o gate específico de `docs/11_FAST_TRACK.md`; player, Model Manager e benchmark amplo ficam para depois.
+
 # Testes e avaliação
 
 ## Dois tipos de verdade
