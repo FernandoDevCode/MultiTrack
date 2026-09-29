@@ -1,0 +1,25 @@
+# Local Python/runtime
+.venv/
+tools/
+
+# Mutable caches and temporary data
+.cache/
+.tmp/
+.research/
+
+# Models, user outputs, and private benchmark audio
+models/
+outputs/
+bench/private/
+
+# Python/tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local editor/OS noise
+.DS_Store
+Thumbs.db
+

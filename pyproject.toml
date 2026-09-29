@@ -1,0 +1,21 @@
+[project]
+name = "stemlab"
+version = "0.0.0"
+description = "Local-first Windows music source separation application"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "audio-separator[gpu]==0.47.0",
+  # audio-separator imports this directly but 0.47.0 does not declare it.
+  "audioread==3.1.0",
+  # 1.27+ defaults to CUDA 13 on PyPI; 1.26 is the CUDA 12.8 build.
+  "onnxruntime-gpu==1.26.0",
+  "torch==2.8.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest==9.1.1",
+]
+
+# The CUDA build is deliberately installed from requirements-gpu.txt, whose
+# direct wheel URL and hash select the validated cu128 Windows artifact.

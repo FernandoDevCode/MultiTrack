@@ -1,0 +1,8 @@
+# PyTorch 2.8 is the validated Windows/Python 3.12 family used by
+# audio-separator 0.47.0. The direct URL prevents selecting a CPU build.
+torch @ https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl#sha256=0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff
+audio-separator[gpu]==0.47.0
+# Work around an undeclared direct import in audio-separator 0.47.0.
+audioread==3.1.0
+# Last default PyPI series built for CUDA 12.8/cuDNN 9.
+onnxruntime-gpu==1.26.0
