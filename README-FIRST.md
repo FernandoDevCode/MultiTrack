@@ -1,44 +1,51 @@
-# StemLab — pacote de arquitetura e execução para Codex
+# StemLab — estado do projeto e caminho de execução
 
-> **Nome provisório:** `StemLab`. Pode ser trocado depois sem mudar a arquitetura.
+> **Nome provisório:** `StemLab`.
 
-Este pacote não é o aplicativo pronto. É a especificação de produto, system design, regras operacionais, plano de validação e prompts fechados para o Codex implementar o projeto em fases pequenas.
+StemLab é um aplicativo Windows local para separação de fontes musicais com modelos modernos de Music Source Separation (MSS). O objetivo final continua sendo alta qualidade, funcionamento offline após setup, stems comuns e uma área experimental para guitarra lead/rhythm quando houver evidência suficiente.
 
-## Objetivo
+## Estado atual
 
-Criar um aplicativo desktop **100% local** para Windows que separe músicas em stems usando modelos modernos de Music Source Separation (MSS), com foco em qualidade e não em velocidade. O produto deve oferecer stems comuns (vocais, bateria, baixo, guitarra, piano/outros) e uma área experimental para separar **guitarra lead vs. guitarra rhythm** quando houver evidência de qualidade suficiente.
+- **Fase 0 — PASS:** runtime local, RTX 5060/CUDA, FFmpeg e `audio-separator` validados.
+- **Fase 1 — PASS:** engine headless permanente implementado com `SeparationService` + adapter de `audio-separator`.
+- **Agora:** executar o **Fast Track v0.1** para colocar uma versão utilizável na mão do usuário o quanto antes.
 
-O projeto não promete que qualquer música com duas guitarras será separada cirurgicamente. Essa é a principal incerteza técnica e existe uma fase específica de benchmark antes de transformar isso em feature estável.
+Relatórios em `docs/generated/` são snapshots históricos e não precisam ser reescritos quando o estado do Git/remoto muda depois.
 
-## Ordem de leitura
+## Estratégia de execução
 
-1. `AGENTS.md` — regras que o agente deve obedecer.
-2. `docs/00_PRODUCT.md` — escopo e o que não é escopo.
-3. `docs/01_SYSTEM_DESIGN.md` — arquitetura.
-4. `docs/02_MODEL_STRATEGY.md` — estratégia dos modelos e o risco lead/rhythm.
-5. `docs/03_SECURITY_AND_SANDBOX.md` — downloads, pesos de modelo e isolamento.
-6. `docs/04_TEST_AND_EVAL.md` — como provar qualidade e funcionamento.
-7. `docs/05_ROADMAP.md` — fases e gates.
-8. `prompts/00_environment_spike.md` — primeiro prompt a executar.
+O plano original de 7 fases continua válido como mapa de convergência, mas não é mais a sequência operacional imediata.
 
-## Regra de execução
+```text
+Fase 0 PASS
+   ↓
+Fase 1 PASS
+   ↓
+Fast Track v0.1
+   ↓
+aplicativo utilizável
+   ↓
+gap analysis contra roadmap original
+   ↓
+hardening somente onde fizer diferença
+```
 
-Não mande o Codex “fazer tudo”. Execute um prompt por fase. Cada fase tem escopo, arquivos permitidos e critérios de aceite. Só avance quando a evidência da fase anterior estiver satisfatória.
+Não estamos descartando o plano original. Estamos mudando a ordem para começar a usar o app antes.
 
-## Decisões principais já fechadas
+## Ordem de leitura para a tarefa atual
 
-- Windows nativo é o alvo principal do aplicativo.
-- Python é o runtime do motor de áudio e da UI inicial.
-- UI desktop: PySide6.
-- Inferência deve rodar em processo separado da UI.
-- CUDA/NVIDIA é o caminho preferencial; CPU é fallback.
-- `audio-separator` é o primeiro adaptador para RoFormer/MDX/Demucs, mas fica atrás de uma interface nossa.
-- Não treinar modelo grande no MVP.
-- Não aceitar pesos arbitrários de usuário no MVP.
-- Internamente usar áudio lossless/float, sem MP3 entre estágios.
-- Modelos, caches, venv, temporários e ferramentas baixadas ficam dentro da pasta do projeto durante desenvolvimento.
-- A aplicação não usa nuvem para separar áudio.
+1. `AGENTS.md`
+2. `docs/11_FAST_TRACK.md`
+3. `docs/01_SYSTEM_DESIGN.md`
+4. `docs/09_UI_SPEC.md`
+5. `docs/03_SECURITY_AND_SANDBOX.md`
+6. `docs/04_TEST_AND_EVAL.md`
+7. `docs/generated/phase1-report.md`
 
-## Primeiro passo
+Depois use somente `prompts/FAST_TRACK_v01.md`.
 
-Crie uma pasta vazia para o projeto, copie o conteúdo deste pacote para a raiz e abra o Codex **nessa pasta**. Depois cole apenas `prompts/00_environment_spike.md`.
+## Roadmap original
+
+`docs/05_ROADMAP.md` preserva as 7 fases como roadmap de convergência. Os prompts antigos permanecem no repo para referência e hardening futuro; não execute a sequência mecanicamente agora.
+
+Após a v0.1, compare o estado real com as fases 2–6 e implemente somente os gaps necessários para chegar ao produto final desejado.
