@@ -61,6 +61,17 @@ class SeparationService:
             stems, validation_warnings = self._validate_stems(
                 backend_result.stems, input_metadata, output_dir, input_path
             )
+            if request.expected_roles:
+                expected = {role.strip().lower() for role in request.expected_roles}
+                actual = {stem.role for stem in stems}
+                if actual != expected:
+                    raise OutputValidationError(
+                        "Backend returned an unexpected set of stems.",
+                        details={
+                            "expected_roles": sorted(expected),
+                            "actual_roles": sorted(actual),
+                        },
+                    )
             warnings = tuple(backend_result.warnings) + validation_warnings
             result = SeparationResult(
                 schema_version=1,

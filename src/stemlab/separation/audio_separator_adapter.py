@@ -69,6 +69,12 @@ class AudioSeparatorBackend:
                 "overlap": None,
                 "pitch_shift": 0,
             },
+            "demucs_params": {
+                "segment_size": "Default",
+                "shifts": 2,
+                "overlap": 0.25,
+                "segments_enabled": True,
+            },
         }
 
         try:
@@ -87,7 +93,19 @@ class AudioSeparatorBackend:
 
                 total_start = time.perf_counter()
                 load_start = time.perf_counter()
-                separator.load_model(request.model.checkpoint_path.name)
+                backend_filename = (
+                    request.model.backend_filename or request.model.checkpoint_path.name
+                )
+                allowed_filenames = {
+                    request.model.checkpoint_path.name,
+                    *(path.name for path in request.model.config_paths),
+                }
+                if backend_filename not in allowed_filenames:
+                    raise BackendSeparationError(
+                        "Backend model identifier is not one of the verified artifacts.",
+                        details={"backend_filename": backend_filename},
+                    )
+                separator.load_model(backend_filename)
                 self._synchronize(selected_device)
                 load_seconds = time.perf_counter() - load_start
 

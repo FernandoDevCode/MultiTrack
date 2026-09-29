@@ -27,6 +27,7 @@ class ModelSpec:
     expected_sha256: str
     config_paths: tuple[Path, ...] = ()
     expected_config_sha256: tuple[str, ...] = ()
+    backend_filename: str | None = None
 
     def __post_init__(self) -> None:
         if not self.model_id.strip():
@@ -37,6 +38,9 @@ class ModelSpec:
             raise ValueError("each config path must have one expected SHA-256")
         if any(not _SHA256_RE.fullmatch(item) for item in self.expected_config_sha256):
             raise ValueError("config SHA-256 values must contain exactly 64 hexadecimal characters")
+        if self.backend_filename is not None:
+            if not self.backend_filename.strip() or Path(self.backend_filename).name != self.backend_filename:
+                raise ValueError("backend_filename must be a plain filename")
 
 
 @dataclass(frozen=True)
@@ -47,6 +51,12 @@ class SeparationRequest:
     output_format: OutputFormat = OutputFormat.WAV
     device_policy: DevicePolicy = DevicePolicy.CUDA_REQUIRED
     use_autocast: bool = True
+    expected_roles: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        normalized = tuple(role.strip().lower() for role in self.expected_roles)
+        if any(not role for role in normalized) or len(set(normalized)) != len(normalized):
+            raise ValueError("expected_roles must be non-empty and unique")
 
 
 @dataclass(frozen=True)

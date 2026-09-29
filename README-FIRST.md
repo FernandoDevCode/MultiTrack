@@ -8,7 +8,18 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 
 - **Fase 0 — PASS:** runtime local, RTX 5060/CUDA, FFmpeg e `audio-separator` validados.
 - **Fase 1 — PASS:** engine headless permanente implementado com `SeparationService` + adapter de `audio-separator`.
-- **Agora:** executar o **Fast Track v0.1** para colocar uma versão utilizável na mão do usuário o quanto antes.
+- **Fast Track v0.1 — PASS:** launcher, GUI PySide6, worker isolado e modos
+  `Vocals HQ (experimental)` e `6 Stems (baseline)` validados em CUDA.
+
+## Abrir o aplicativo
+
+Dê duplo clique em `START-STEMLAB.bat`. Escolha uma música, o modo e WAV ou
+FLAC; cada execução cria uma pasta nova em `outputs/`. Ao concluir, use
+**Abrir pasta dos stems**.
+
+O modo `Vocals HQ` usa um peso local experimental cuja licença continua
+desconhecida e não redistribuível pela decisão atual. O modo `6 Stems` produz
+vocals, drums, bass, guitar, piano e other com `htdemucs_6s`.
 
 Relatórios em `docs/generated/` são snapshots históricos e não precisam ser reescritos quando o estado do Git/remoto muda depois.
 
@@ -21,7 +32,7 @@ Fase 0 PASS
    ↓
 Fase 1 PASS
    ↓
-Fast Track v0.1
+Fast Track v0.1 PASS
    ↓
 aplicativo utilizável
    ↓

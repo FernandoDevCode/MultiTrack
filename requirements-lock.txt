@@ -47,6 +47,7 @@ pycparser==3.0
 pydub==0.25.1
 Pygments==2.21.0
 pytest==9.1.1
+PySide6-Essentials==6.9.2
 PyYAML==6.0.3
 requests==2.34.2
 resampy==0.4.3
@@ -54,6 +55,7 @@ rotary-embedding-torch==0.6.5
 samplerate==0.1.0
 scikit-learn==1.9.1
 scipy==1.18.1
+shiboken6==6.9.2
 setuptools==84.0.0
 six==1.17.0
 soundfile==0.14.0

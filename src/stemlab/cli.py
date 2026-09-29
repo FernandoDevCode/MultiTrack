@@ -19,6 +19,8 @@ def build_parser() -> argparse.ArgumentParser:
     separate.add_argument("--model-sha256", required=True)
     separate.add_argument("--model-config", type=Path, action="append", default=[])
     separate.add_argument("--model-config-sha256", action="append", default=[])
+    separate.add_argument("--backend-filename")
+    separate.add_argument("--expect-stem", action="append", default=[])
     separate.add_argument("--output", type=Path, required=True)
     separate.add_argument(
         "--format", choices=("wav", "flac"), default="wav", dest="output_format"
@@ -45,11 +47,13 @@ def main(argv: list[str] | None = None) -> int:
             expected_sha256=args.model_sha256,
             config_paths=tuple(args.model_config),
             expected_config_sha256=tuple(args.model_config_sha256),
+            backend_filename=args.backend_filename,
         ),
         output_dir=args.output,
         output_format=OutputFormat(args.output_format.upper()),
         device_policy=DevicePolicy(args.device),
         use_autocast=not args.no_autocast,
+        expected_roles=tuple(args.expect_stem),
     )
     backend = AudioSeparatorBackend(
         models_dir=repo_root / "models",

@@ -1,0 +1,62 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+
+import pytest
+
+from stemlab.app import MODES, SIX_STEMS, VOCALS_HQ, build_request, get_mode, new_output_dir
+from stemlab.domain import DevicePolicy, OutputFormat
+
+
+def test_fast_track_exposes_only_two_curated_modes() -> None:
+    assert [mode.label for mode in MODES] == [
+        "Vocals HQ (experimental)",
+        "6 Stems (baseline)",
+    ]
+    assert VOCALS_HQ.expected_roles == ("instrumental", "vocals")
+    assert SIX_STEMS.expected_roles == (
+        "vocals",
+        "drums",
+        "bass",
+        "guitar",
+        "piano",
+        "other",
+    )
+    assert "experimental" in VOCALS_HQ.description.lower()
+    assert "not redistributable" in VOCALS_HQ.description
+
+
+def test_unknown_mode_is_rejected() -> None:
+    with pytest.raises(ValueError, match="Unknown separation mode"):
+        get_mode("arbitrary-checkpoint")
+
+
+def test_six_stem_request_uses_verified_local_artifacts(tmp_path: Path) -> None:
+    request = build_request(
+        repo_root=tmp_path,
+        input_path=tmp_path / "song.wav",
+        mode_id=SIX_STEMS.mode_id,
+        output_dir=tmp_path / "outputs" / "song" / "run",
+        output_format=OutputFormat.FLAC,
+    )
+    assert request.device_policy is DevicePolicy.CUDA_REQUIRED
+    assert request.output_format is OutputFormat.FLAC
+    assert request.model.backend_filename == "htdemucs_6s.yaml"
+    assert request.model.checkpoint_path == tmp_path / "models" / "5c90dfd2-34c22ccb.th"
+    assert request.model.config_paths == (tmp_path / "models" / "htdemucs_6s.yaml",)
+    assert request.expected_roles == SIX_STEMS.expected_roles
+
+
+def test_output_directory_is_safe_unique_and_below_outputs(tmp_path: Path) -> None:
+    output = new_output_dir(
+        tmp_path,
+        Path("C:/Music/Minha Música & Solo.wav"),
+        now=datetime(2026, 9, 29, 18, 20, 30, 123456, tzinfo=timezone.utc),
+    )
+    assert output == (
+        tmp_path.resolve()
+        / "outputs"
+        / "minha-musica-solo"
+        / "20260929-182030-123456"
+    )

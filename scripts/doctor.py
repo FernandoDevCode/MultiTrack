@@ -23,6 +23,14 @@ EXPECTED_MODEL_FILES = {
         2_273,
         "2bfdd16c656bd9519aba757cc4f8834b7ede675eb1e00ec4772d74ae1c41af7f",
     ),
+    "5c90dfd2-34c22ccb.th": (
+        54_996_327,
+        "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+    ),
+    "htdemucs_6s.yaml": (
+        21,
+        "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+    ),
 }
 REQUIRED_LOCAL_ENV = (
     "TEMP",
@@ -165,6 +173,18 @@ def check_audio_separator() -> None:
         fail(f"audio-separator version mismatch: expected 0.47.0, got {version}")
 
 
+def check_pyside() -> None:
+    try:
+        import PySide6
+    except Exception as exc:  # diagnostic boundary
+        fail(f"Unable to import PySide6: {exc}")
+        return
+    if PySide6.__version__ == "6.9.2":
+        result("PASS", f"PySide6 Essentials {PySide6.__version__}")
+    else:
+        fail(f"PySide6 version mismatch: expected 6.9.2, got {PySide6.__version__}")
+
+
 def check_local_tool(name: str) -> None:
     expected_parent = REPO_ROOT / "tools" / "ffmpeg" / "bin"
     executable_path = expected_parent / f"{name}.exe"
@@ -224,6 +244,7 @@ def main() -> int:
     check_nvidia_smi()
     check_torch()
     check_audio_separator()
+    check_pyside()
     check_local_tool("ffmpeg")
     check_local_tool("ffprobe")
     check_smoke_model()

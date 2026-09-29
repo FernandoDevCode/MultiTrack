@@ -67,6 +67,18 @@ default, não comprova qualidade musical e não autoriza redistribuição; a
 licença do peso permanece desconhecida. Promoção exige registry e benchmark
 posteriores.
 
+## D-011 — htdemucs_6s como baseline de seis stems do Fast Track v0.1
+
+**Status:** accepted.
+
+O Fast Track usa o único modelo `htdemucs_6s` indicado no plano ativo para
+produzir vocals, drums, bass, guitar, piano e other. O loader Demucs v4 já vem
+no `audio-separator` 0.47.0, portanto nenhum segundo backend ou pacote Demucs
+foi introduzido. O peso público upstream e o YAML são mantidos em `models/`,
+verificados por SHA-256 antes da carga e não são automaticamente promovidos a
+um default redistribuível. Comparação de qualidade e decisão de distribuição
+continuam sendo gates posteriores.
+
 ## Template para nova decisão
 
 ```text

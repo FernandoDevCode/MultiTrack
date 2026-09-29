@@ -235,3 +235,19 @@ def test_only_adapter_imports_audio_separator() -> None:
         if "from audio_separator" in text or "import audio_separator" in text:
             offenders.append(source)
     assert offenders == []
+
+
+def test_unexpected_stem_set_is_rejected(tmp_path: Path) -> None:
+    request, _ = _fixture(tmp_path)
+    request = SeparationRequest(
+        input_path=request.input_path,
+        model=request.model,
+        output_dir=request.output_dir,
+        expected_roles=("vocals", "instrumental"),
+    )
+
+    result = SeparationService(FakeBackend()).separate(request)
+
+    assert not result.success
+    assert result.error and result.error.code == "output_validation"
+    assert result.error.details["actual_roles"] == ["vocals"]
