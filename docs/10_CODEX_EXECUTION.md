@@ -1,56 +1,39 @@
 # Como executar com Codex
 
+## Estado atual
+
+Fase 0 e Fase 1 já estão concluídas. O caminho ativo agora é o **Fast Track v0.1**.
+
+Use somente:
+
+`prompts/FAST_TRACK_v01.md`
+
+Enquanto o Fast Track estiver ativo, a regra antiga de “um prompt por fase, sem combinar fases” fica suspensa **somente para esse prompt fechado**. O roadmap original continua preservado para convergência depois da v0.1.
+
 ## Sandbox
 
-Abra o Codex a partir da raiz do projeto. O `.codex/config.toml` do repo usa `workspace-write`, rede desligada por padrão e aprovação pelo usuário.
+Abra o Codex na raiz do projeto. Mantenha `workspace-write`, sem writable roots extras. Rede só quando necessária para dependência/modelo aprovado. Não usar acesso irrestrito.
 
-Quando uma fase precisar baixar dependências/modelos, o Codex deve pedir a escalada/rede necessária. Aprove a operação específica. Não troque para `danger-full-access`.
+## Depois da execução
 
-### O que “só esta pasta” significa aqui
-
-- Escrita: projeto atual (nenhum `writable_roots` extra).
-- Downloads/caches: redirecionados para subpastas do projeto.
-- Rede: somente quando aprovada para bootstrap/model download.
-- Leitura: o sandbox nativo do Windows pode ter leitura mais ampla. Para isolamento de leitura estrito, use WSL2 + ai-jail ou VM.
-
-## Modelo de trabalho
-
-Cada prompt da pasta `prompts/` é uma execução útil e fechada. Não combine duas fases para “economizar tempo”. A maior economia é evitar retrabalho.
-
-### Antes da execução
-
-Confira o bloco:
-
-```text
-Config Codex
-Modelo: ...
-Effort: ...
-Plan: ON/OFF
-Motivo: ...
-```
-
-### Depois da execução
-
-Exija do Codex:
+Exija:
 
 - arquivos alterados;
 - comandos executados;
-- evidência de testes;
-- downloads feitos (URL, tamanho, hash quando aplicável);
-- qualquer alteração fora do escopo solicitada: deve ser zero;
-- incertezas/blockers.
+- testes;
+- downloads/origem/hash quando aplicável;
+- smoke real;
+- limitações;
+- alterações fora do escopo: zero.
 
-Não aceite “funciona” sem evidência executada.
+Não aceite “funciona” sem evidência.
 
-## Regra de rede
+## Depois do Fast Track
 
-Codex pode usar internet em duas situações:
+Faça gap analysis contra `docs/05_ROADMAP.md`. Não retome automaticamente pelo próximo número da fase.
 
-1. instalar dependências pinadas/necessárias;
-2. pesquisar/baixar pesos explicitamente dentro da fase de modelos.
+Os prompts `02_model_registry.md` a `06_packaging.md` são referência de convergência futura e só devem ser usados quando o gap analysis justificar.
 
-Fora disso, mantenha rede desligada. A separação final deve ser testada offline.
+## Git
 
-## Commits
-
-O agente pode terminar uma fase com working tree pronta e sugerir mensagem de commit. Não use uma rodada separada de agente só para `git commit/push`. Push nunca é parte implícita da fase.
+Commit local pode fazer parte da tarefa útil. Push, tag e release exigem pedido explícito.
