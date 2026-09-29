@@ -1,128 +1,107 @@
-# Roadmap oficial
+# Roadmap oficial de convergência
 
-## Fase 0 — Environment & dependency spike
+## Como ler este documento agora
 
-**Objetivo:** provar que o ambiente Windows/GPU e as dependências funcionam sem alterar o sistema globalmente.
+Este documento preserva o plano original de 7 fases. Ele **não é mais a sequência operacional obrigatória imediata**.
 
-Entregas:
+Estado atual:
 
-- estrutura mínima do repo;
-- `.venv` local;
-- script de dev environment localizando caches/temp no repo;
-- Python 3.12 confirmado;
-- Torch/CUDA smoke no hardware real;
-- `audio-separator` importado;
-- catálogo de modelos enumerado sem escolher default final;
-- FFmpeg local somente se necessário para o smoke;
-- relatório `docs/generated/environment-report.md`.
+- Fase 0: **PASS**
+- Fase 1: **PASS**
+- Fast Track v0.1: **ATIVO** — ver `docs/11_FAST_TRACK.md`
+- Fases 2–6: referência de hardening/convergência depois da v0.1
 
-Gate: GPU smoke + um comando de `audio-separator`/API funcionando. Nenhuma GUI.
+Fluxo atual:
 
-## Fase 1 — Engine baseline
+```text
+0 PASS -> 1 PASS -> FAST TRACK v0.1 -> GAP ANALYSIS -> gaps úteis das fases 2–6
+```
 
-**Objetivo:** separar um arquivo por CLI/caso de uso interno.
+O objetivo é chegar ao mesmo nível final com uma versão utilizável muito antes.
 
-Implementar:
+## Fase 0 — Environment & dependency spike — PASS
 
-- contratos de domínio mínimos;
-- `AudioSeparatorAdapter`;
-- uma baseline 6-stem (Demucs 6s ou equivalente comprovado no spike);
-- saída lossless;
-- manifest do job;
-- invariantes de áudio e testes.
+Ambiente Windows/GPU local validado. Evidência em `docs/generated/environment-report.md`.
 
-Gate: um clip privado do usuário pode virar stems sem UI e sem tocar arquivo original.
+## Fase 1 — Engine baseline — PASS
+
+Engine headless permanente implementado. Evidência em `docs/generated/phase1-report.md`.
 
 ## Fase 2 — Registry, downloader e benchmark harness
 
-**Objetivo:** deixar seleção de modelo auditável.
+**Papel após Fast Track:** hardening da seleção/download e qualificação de defaults.
 
-Implementar:
+Quando necessário:
 
-- `resources/models.json` nosso;
+- registry curado;
 - download com hash e `.partial`;
 - estados `approved/experimental/rejected`;
-- harness para comparar candidatos;
-- relatório de runtime/VRAM/métricas;
-- qualificar o primeiro pipeline HQ de core stems.
+- harness de benchmark;
+- qualificação do pipeline HQ.
 
-Gate: default de core stems escolhido por evidência registrada.
+Não bloquear a primeira UI utilizável por isso.
 
 ## Fase 3 — Worker + jobs
 
-**Objetivo:** separar inferência da UI.
+**Papel após Fast Track:** aprofundar o subprocesso simples da v0.1.
 
-Implementar:
+Adicionar conforme necessidade:
 
-- worker process;
-- protocolo JSON de eventos;
-- progress/cancel/failure;
-- limpeza previsível de VRAM por estágio/processo;
-- retry somente quando seguro;
-- smoke de OOM/cancelamento.
+- protocolo versionado;
+- progress granular verdadeiro;
+- cancelamento robusto;
+- limpeza previsível de VRAM;
+- retry seguro;
+- testes de OOM/cancelamento.
 
-Gate: job pesado não congela controlador e cancelamento não deixa estado inválido.
+Se o worker mínimo da v0.1 estiver saudável, evoluir em vez de reescrever.
 
 ## Fase 4 — Desktop UI + player
 
-**Objetivo:** tornar o engine utilizável.
+**Papel após Fast Track:** aprofundar a UI mínima.
 
-Implementar somente:
+Adicionar conforme valor:
 
-- open/drag file;
-- preset HQ;
-- progress/cancel;
-- waveform/timeline simples;
-- play/pause/seek;
+- waveform/timeline;
+- player sincronizado;
 - solo/mute/volume;
-- export;
+- export avançado;
 - Model Manager;
 - Diagnostics.
 
-Gate: fluxo completo sem terminal para o usuário normal.
-
 ## Fase 5 — Guitar Lab research gate
 
-**Objetivo:** descobrir se Lead/Rhythm local é bom o suficiente.
+Continua sendo gate separado. Saídas possíveis: `approved`, `experimental` ou `rejected`.
 
-Atividades:
-
-- pesquisar checkpoint local role-aware atual com origem/licença;
-- testar direto na mix vs. two-stage;
-- comparar com generic guitar baseline;
-- medir leakage e qualidade;
-- documentar falhas por tipo de mixagem.
-
-Saídas possíveis:
-
-A. `approved`: integrar Lead/Rhythm como feature estável;
-B. `experimental`: expor com rótulo e limitações claras;
-C. `rejected`: manter somente Guitar e não fingir que o problema foi resolvido.
-
-Gate: decisão explícita baseada no relatório. Não implementar UI estável antes do gate.
+Lead/Rhythm não vira feature estável por atalho de cronograma.
 
 ## Fase 6 — Packaging/release local
 
-**Objetivo:** experiência repetível no Windows.
+Continua sendo a etapa de distribuição repetível:
 
-Preferência inicial:
-
-- pacote one-folder/portable, não “one-file magic”;
-- runtime e ferramentas locais;
-- modelos baixados separadamente quando licença/tamanho pedirem;
-- doctor/diagnostics;
-- teste offline completo.
-
-Gate: instalar/descompactar em pasta nova, baixar/validar modelo, desligar internet, separar e reproduzir uma música.
+- build portable/one-folder;
+- runtime/ferramentas locais;
+- modelos separados quando necessário;
+- doctor;
+- teste offline em pasta limpa.
 
 ## Pós-MVP
 
 Somente depois:
 
-- Max/ensemble mode;
-- stems de bateria detalhados;
+- Max/ensemble;
+- bateria detalhada;
 - acoustic/electric guitar;
-- batch processing;
+- batch;
 - fila persistente;
 - packaging mais amigável;
-- pesquisa/fine-tune próprio para Lead/Rhythm caso os pesos públicos não atinjam qualidade.
+- fine-tune próprio se Guitar Lab justificar.
+
+## Regra de gap analysis
+
+Depois do Fast Track:
+
+1. listar o que a v0.1 já resolveu;
+2. mapear cada limitação real para as fases 2–6;
+3. priorizar por impacto no uso/qualidade;
+4. evitar reimplementar uma seam saudável apenas para “seguir o plano”.
