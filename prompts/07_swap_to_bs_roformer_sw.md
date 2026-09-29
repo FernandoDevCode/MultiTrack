@@ -33,19 +33,24 @@ O `audio-separator` 0.47.0 já conhece:
 - checkpoint: `BS-Roformer-SW.ckpt`
 - config: `BS-Roformer-SW.yaml`
 
-## Fontes aprovadas
+## Pré-condição local
 
-Catálogo upstream:
-`nomadkaraoke/python-audio-separator` -> `audio_separator/models.json`
+O usuário executa antes desta tarefa:
 
-Artefatos:
-`https://huggingface.co/lainlives/audio-separator-models/resolve/main/BS-Roformer-SW.ckpt`
-`https://huggingface.co/lainlives/audio-separator-models/resolve/main/BS-Roformer-SW.yaml`
+```powershell
+.\.venv\Scripts\python.exe scripts\install_bs_roformer_sw.py
+```
 
-Checkpoint SHA-256 esperado:
-`24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e`
+Esse script baixa os dois artefatos de uma revisão imutável, verifica o checkpoint por SHA-256/tamanho, verifica o YAML pelo Git blob hash conhecido, calcula o SHA-256 do YAML e grava `.tmp/bs-roformer-sw-install.json`.
 
-O YAML é pequeno. Baixe primeiro para uma pasta temporária dentro do repo, inspecione, calcule SHA-256 e registre esse hash antes de qualquer carga do modelo.
+Ao iniciar esta tarefa:
+
+1. rode `.\.venv\Scripts\python.exe scripts\install_bs_roformer_sw.py --verify-only`;
+2. leia `.tmp/bs-roformer-sw-install.json`;
+3. use exatamente os hashes ali registrados;
+4. **não faça download de modelo** nesta execução.
+
+Se a verificação falhar ou o receipt não existir, pare como `BLOCKED` e peça ao usuário para executar o instalador; não tente um download alternativo.
 
 ## Regras de segurança
 
@@ -53,9 +58,9 @@ O YAML é pequeno. Baixe primeiro para uma pasta temporária dentro do repo, ins
 - não instalar nada globalmente;
 - não alterar driver/CUDA/PATH persistente;
 - não usar `danger-full-access`;
-- download primeiro como `.partial` ou em `.tmp/model-candidates/`;
-- checkpoint só pode ser promovido para `models/` se o SHA-256 for exatamente o esperado;
-- config deve ter hash calculado e pinado no código antes do primeiro `load_model`;
+- não baixar modelo nesta execução; usar apenas os artefatos já verificados pelo instalador local;
+- checkpoint/config devem ser revalidados com `--verify-only` antes do primeiro `load_model`;
+- pin de checkpoint e config deve vir do receipt local;
 - não permitir URL/modelo arbitrário na UI;
 - não fazer fallback silencioso para CPU;
 - não modificar o áudio de entrada;
@@ -63,17 +68,15 @@ O YAML é pequeno. Baixe primeiro para uma pasta temporária dentro do repo, ins
 
 ## Implementação mínima
 
-1. Baixe checkpoint + YAML aprovados.
-2. Verifique checkpoint SHA-256.
-3. Inspecione/configure o hash do YAML.
-4. Promova os dois arquivos para `models/`.
-5. Troque `SIX_STEMS` em `src/stemlab/app/modes.py` para usar BS-RoFormer SW.
-6. Remova “baseline”/“htdemucs” da label e descrição ativas do modo 6-stem.
-7. Preserve as seis `expected_roles`.
-8. Ajuste `scripts/doctor.py` para verificar os novos artefatos.
-9. Ajuste testes que hoje esperam `htdemucs_6s`.
-10. Não criar novo backend. Use `AudioSeparatorBackend` existente.
-11. Não implementar player, waveform, export novo, downloader genérico, registry genérico, ensembles ou Guitar Lab nesta tarefa.
+1. Revalide os artefatos instalados com `scripts/install_bs_roformer_sw.py --verify-only`.
+2. Leia o receipt e obtenha SHA-256/tamanho do checkpoint e SHA-256 do YAML.
+3. Troque `SIX_STEMS` em `src/stemlab/app/modes.py` para usar BS-RoFormer SW.
+4. Remova “baseline”/“htdemucs” da label e descrição ativas do modo 6-stem.
+5. Preserve as seis `expected_roles`.
+6. Ajuste `scripts/doctor.py` para verificar os novos artefatos pelos hashes pinados.
+7. Ajuste testes que hoje esperam `htdemucs_6s`.
+8. Não criar novo backend. Use `AudioSeparatorBackend` existente.
+9. Não implementar player, waveform, export novo, downloader genérico, registry genérico, ensembles ou Guitar Lab nesta tarefa.
 
 ## Smoke obrigatório ANTES de remover o modelo antigo
 
