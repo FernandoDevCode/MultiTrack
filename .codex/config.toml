@@ -1,0 +1,21 @@
+#:schema https://developers.openai.com/codex/config-schema.json
+
+# Segurança por padrão: Codex pode alterar o workspace atual, mas operações de
+# rede/escape devem pedir aprovação. Não adicione writable_roots extras.
+sandbox_mode = "workspace-write"
+approval_policy = "on-request"
+approvals_reviewer = "user"
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = []
+
+[shell_environment_policy]
+# Evita propagar variáveis cujo nome sugira segredo/token para subprocessos.
+ignore_default_excludes = false
+
+# IMPORTANTE:
+# - workspace-write limita gravação ao workspace (e raízes adicionais, aqui vazias),
+#   mas em Windows não significa que leituras fora do workspace sejam impossíveis.
+# - Durante bootstrap/model download, aprove explicitamente a rede quando Codex pedir.
+# - Não deixe network_access=true permanentemente só por conveniência.

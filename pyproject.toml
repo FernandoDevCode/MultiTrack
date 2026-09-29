@@ -1,6 +1,6 @@
 [project]
 name = "stemlab"
-version = "0.0.0"
+version = "0.1.0"
 description = "Local-first Windows music source separation application"
 requires-python = ">=3.12,<3.13"
 dependencies = [
@@ -19,3 +19,18 @@ dev = [
 
 # The CUDA build is deliberately installed from requirements-gpu.txt, whose
 # direct wheel URL and hash select the validated cu128 Windows artifact.
+
+[project.scripts]
+stemlab = "stemlab.cli:main"
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+markers = [
+  "integration: opt-in tests that run the existing GPU model",
+]
