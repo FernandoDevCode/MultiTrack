@@ -12,8 +12,8 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 - **BS-RoFormer SW migration — PASS:** `Core Stems`/seis stems roda localmente em CUDA.
 - **v0.2 Checkpoint 1 — PASS:** Core Stems, player multistem sincronizado, A/B, export byte-identical, extração lossless de áudio de vídeo e seam mínima de pipelines.
 - **v0.2 Checkpoint 1 — aceitação manual PASS:** player/export/extração e paths Unicode validados pelo usuário.
-- **v0.2 Checkpoint 2 — technical PASS:** análise local CLAP em CUDA, sugestões editáveis e planejamento adaptativo; quality gate manual ainda pendente.
-- **Agora:** validar sugestões em músicas conhecidas. Nenhum separador especialista posterior foi iniciado.
+- **v0.2 Checkpoint 2 — technical PASS / manual quality FAIL:** a infraestrutura de análise funciona, mas o CLAP errou instrumentação relevante em teste conhecido (incluindo guitarra claramente audível). Permanece advisory/experimental e não decide routing automaticamente.
+- **Agora:** v0.2 Checkpoint 3 — benchmark local de especialistas para Guitar Lead/Rhythm e Bass, sem promoção automática ao produto.
 
 ## Abrir o aplicativo
 
@@ -27,8 +27,9 @@ BS-RoFormer SW local já aprovado. A ação separada **Extrair áudio de vídeo�
 gera WAV ou FLAC lossless com o FFmpeg local.
 
 O botão **Analisar instrumentos** executa o CLAP local em um processo separado,
-mostra sugestões editáveis e informa quais alvos já são atendidos pelo Core
-Stems. As sugestões não são probabilidades e devem ser confirmadas pelo usuário.
+mas o detector falhou no gate musical manual e permanece experimental. As
+sugestões não são probabilidades, não são autoridade para routing e precisam de
+confirmação humana.
 
 Relatórios em `docs/generated/` são snapshots históricos e não precisam ser reescritos quando o estado do Git/remoto muda depois.
 
@@ -62,7 +63,7 @@ Não estamos descartando o plano original. Estamos mudando a ordem para começar
 6. `docs/04_TEST_AND_EVAL.md`
 7. `docs/generated/phase1-report.md`
 
-Para a tarefa atual use `docs/13_V02_CHECKPOINT2.md` e `prompts/V02_CHECKPOINT2.md`. Checkpoint 1 e Fast Track são históricos.
+Para a tarefa atual use `docs/14_V02_CHECKPOINT3.md` e `prompts/V02_CHECKPOINT3.md`. Checkpoints anteriores permanecem históricos.
 
 ## Roadmap original
 
