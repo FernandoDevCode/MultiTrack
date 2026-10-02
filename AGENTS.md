@@ -8,13 +8,15 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 
 - Fase 0 (ambiente/GPU): **PASS**.
 - Fase 1 (engine headless): **PASS**.
-- Caminho ativo: **Fast Track v0.1**, definido em `docs/11_FAST_TRACK.md`.
+- Fast Track v0.1: **PASS**.
+- Caminho ativo: **v0.2 Checkpoint 1 — Core + Player**, definido em `docs/12_V02_CHECKPOINT1.md`.
 - O roadmap original de 7 fases em `docs/05_ROADMAP.md` continua válido como mapa de convergência/hardening. Ele não deve ser executado mecanicamente fase a fase enquanto o Fast Track estiver ativo.
 - Depois da v0.1 utilizável, faça um **gap analysis** contra as fases originais e implemente somente o que ainda trouxer valor.
 
 ## Fontes de verdade
 
-- Para o caminho ativo imediato: `docs/11_FAST_TRACK.md`.
+- Para o caminho ativo imediato: `docs/12_V02_CHECKPOINT1.md`.
+- `docs/11_FAST_TRACK.md` permanece como histórico da v0.1.
 - Para produto e escopo final: `docs/00_PRODUCT.md`.
 - Para limites arquiteturais: `docs/01_SYSTEM_DESIGN.md`.
 - Para escolha/promulgação de modelos: `docs/02_MODEL_STRATEGY.md` e a skill `model-evaluation`.
