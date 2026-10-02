@@ -5,14 +5,22 @@ from pathlib import Path
 
 import pytest
 
-from stemlab.app import MODES, SIX_STEMS, VOCALS_HQ, build_request, get_mode, new_output_dir
+from stemlab.app import (
+    CORE_STEMS,
+    MODES,
+    SIX_STEMS,
+    VOCALS_HQ,
+    build_request,
+    get_mode,
+    new_output_dir,
+)
 from stemlab.domain import DevicePolicy, OutputFormat
 
 
 def test_fast_track_exposes_only_two_curated_modes() -> None:
     assert [mode.label for mode in MODES] == [
         "Vocals HQ (experimental)",
-        "6 Stems",
+        "Core Stems",
     ]
     assert VOCALS_HQ.expected_roles == ("instrumental", "vocals")
     assert SIX_STEMS.expected_roles == (
@@ -25,6 +33,16 @@ def test_fast_track_exposes_only_two_curated_modes() -> None:
     )
     assert "experimental" in VOCALS_HQ.description.lower()
     assert "not redistributable" in VOCALS_HQ.description
+
+
+def test_core_stems_plan_is_plain_data_and_resolves_to_existing_mode() -> None:
+    assert CORE_STEMS.to_dict() == {
+        "pipeline_id": "core-stems",
+        "label": "Core Stems",
+        "description": "BS-RoFormer SW: vocals, drums, bass, guitar, piano e other.",
+        "steps": ({"mode_id": "six-stems"},),
+    }
+    assert CORE_STEMS.steps[0].mode_id == SIX_STEMS.mode_id
 
 
 def test_unknown_mode_is_rejected() -> None:

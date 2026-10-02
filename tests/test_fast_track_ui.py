@@ -7,7 +7,9 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication
+import numpy as np
 import pytest
+import soundfile as sf
 
 from stemlab.ui import MainWindow
 
@@ -47,7 +49,7 @@ def test_ui_basic_states_and_success(tmp_path: Path, qt_app, monkeypatch) -> Non
 
     assert not window.separate_button.isEnabled()
     assert not window.open_folder_button.isEnabled()
-    assert window.mode_combo.currentText() == "6 Stems"
+    assert window.mode_combo.currentText() == "Core Stems"
 
     window.set_input_path(input_path)
     assert window.separate_button.isEnabled()
@@ -99,6 +101,39 @@ def test_ui_recovers_from_worker_error(tmp_path: Path, qt_app) -> None:
     assert window.mode_combo.isEnabled()
     assert not window.open_folder_button.isEnabled()
     assert window.status_label.text() == "Erro: modelo ausente"
+    window.close()
+
+
+def test_completed_core_stems_shows_one_synchronized_mixer(tmp_path: Path, qt_app) -> None:
+    input_path = tmp_path / "song.wav"
+    audio = np.zeros((1000, 2), dtype=np.float32)
+    sf.write(input_path, audio, 1000, subtype="FLOAT")
+    output_dir = tmp_path / "outputs" / "run"
+    output_dir.mkdir(parents=True)
+    stem_items = []
+    for index, role in enumerate(("vocals", "drums", "bass", "guitar", "piano", "other")):
+        path = output_dir / f"{role}.wav"
+        sf.write(path, audio + (index + 1) / 100, 1000, subtype="FLOAT")
+        stem_items.append(
+            {"role": role, "path": str(path), "sample_rate": 1000, "channels": 2}
+        )
+    worker = FakeWorker()
+    window = MainWindow(repo_root=tmp_path, worker=worker)
+    window.set_input_path(input_path)
+    window.start_separation()
+    worker.running = False
+    worker.completed.emit(
+        {
+            "output_dir": str(output_dir),
+            "result": {"stems": stem_items, "device": {"effective_device": "cuda"}},
+        }
+    )
+    assert not window.result_group.isHidden()
+    assert len(window.stem_mixer.rows) == 6
+    assert window.original_radio.text() == "Original"
+    assert window.stems_radio.isChecked()
+    assert window.export_all_button.text() == "Exportar todos"
+    assert window.player.state().total_frames == 1000
     window.close()
 
 

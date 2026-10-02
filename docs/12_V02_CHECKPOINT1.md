@@ -1,6 +1,6 @@
 # StemLab v0.2 — Checkpoint 1: Core + Player
 
-**Status:** active implementation checkpoint  
+**Status:** **PASS** em 2026-10-02; evidências em `docs/generated/v02-checkpoint1-report.md`
 **Goal:** turn the current separator into a usable local listening/export tool without yet adding automatic instrument detection or specialist models.
 
 ## Scope

@@ -15,14 +15,14 @@ from stemlab.workers.protocol import (
 
 
 def test_worker_command_keeps_user_paths_as_arguments(tmp_path: Path) -> None:
-    input_path = tmp_path / "song & echo unsafe.wav"
-    output_path = tmp_path / "outputs" / "run & keep"
+    input_path = tmp_path / "Música São João - João & Núbia.wav"
+    output_path = tmp_path / "á é í ó ú ã õ ç" / "Ana-Nóbrega"
     program, arguments = build_worker_command(
         tmp_path,
         JobLaunch(input_path, "six-stems", output_path, OutputFormat.FLAC),
     )
     assert program == str(tmp_path.resolve() / ".venv" / "Scripts" / "python.exe")
-    assert arguments[:3] == ["-m", "stemlab.workers.run_job", "--input"]
+    assert arguments[:5] == ["-X", "utf8", "-m", "stemlab.workers.run_job", "--input"]
     assert str(input_path.resolve()) in arguments
     assert str(output_path.resolve()) in arguments
     assert "flac" in arguments
@@ -30,13 +30,16 @@ def test_worker_command_keeps_user_paths_as_arguments(tmp_path: Path) -> None:
 
 
 def test_worker_event_round_trip_and_log_filtering() -> None:
-    encoded = encode_event("completed", message="done", payload={"output_dir": "x"})
+    unicode_path = "C:/á é í ó ú ã õ ç/Música São João - João & Núbia/Ana-Nóbrega.wav"
+    encoded = encode_event("completed", message="concluído: Música São João", payload={"output_dir": unicode_path})
     assert encoded.startswith(EVENT_PREFIX)
+    assert "Nóbrega" in encoded
+    assert "�" not in encoded
     assert parse_event_line(encoded) == {
         "protocol_version": 1,
         "type": "completed",
-        "message": "done",
-        "payload": {"output_dir": "x"},
+        "message": "concluído: Música São João",
+        "payload": {"output_dir": unicode_path},
     }
     assert parse_event_line("ordinary backend log") is None
 

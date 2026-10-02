@@ -24,6 +24,8 @@ def build_worker_command(repo_root: Path, job: JobLaunch) -> tuple[str, list[str
     root = repo_root.resolve()
     python_executable = root / ".venv" / "Scripts" / "python.exe"
     arguments = [
+        "-X",
+        "utf8",
         "-m",
         "stemlab.workers.run_job",
         "--input",

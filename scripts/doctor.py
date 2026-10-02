@@ -185,6 +185,19 @@ def check_pyside() -> None:
         fail(f"PySide6 version mismatch: expected 6.9.2, got {PySide6.__version__}")
 
 
+def check_sounddevice() -> None:
+    try:
+        version = importlib.metadata.version("sounddevice")
+        import sounddevice  # noqa: F401
+    except Exception as exc:
+        fail(f"Unable to import sounddevice: {exc}")
+        return
+    if version == "0.5.6":
+        result("PASS", f"sounddevice {version}")
+    else:
+        fail(f"sounddevice version mismatch: expected 0.5.6, got {version}")
+
+
 def check_local_tool(name: str) -> None:
     expected_parent = REPO_ROOT / "tools" / "ffmpeg" / "bin"
     executable_path = expected_parent / f"{name}.exe"
@@ -245,6 +258,7 @@ def main() -> int:
     check_torch()
     check_audio_separator()
     check_pyside()
+    check_sounddevice()
     check_local_tool("ffmpeg")
     check_local_tool("ffprobe")
     check_smoke_model()

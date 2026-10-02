@@ -10,6 +10,7 @@ dependencies = [
   # 1.27+ defaults to CUDA 13 on PyPI; 1.26 is the CUDA 12.8 build.
   "onnxruntime-gpu==1.26.0",
   "PySide6-Essentials==6.9.2",
+  "sounddevice==0.5.6",
   "torch==2.8.0",
 ]
 

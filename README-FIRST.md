@@ -10,17 +10,19 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 - **Fase 1 — PASS:** engine headless permanente implementado com `SeparationService` + adapter de `audio-separator`.
 - **Fast Track v0.1 — PASS:** launcher, GUI PySide6 e worker isolado validados em CUDA.
 - **BS-RoFormer SW migration — PASS:** `Core Stems`/seis stems roda localmente em CUDA.
-- **Agora:** v0.2 Checkpoint 1 — player multistem sincronizado, export, extração de áudio de vídeo e seam mínima de pipelines.
+- **v0.2 Checkpoint 1 — PASS:** Core Stems, player multistem sincronizado, A/B, export byte-identical, extração lossless de áudio de vídeo e seam mínima de pipelines.
+- **Próximo:** Checkpoint 2 permanece não iniciado.
 
 ## Abrir o aplicativo
 
-Dê duplo clique em `START-STEMLAB.bat`. Escolha uma música, o modo e WAV ou
-FLAC; cada execução cria uma pasta nova em `outputs/`. Ao concluir, use
-**Abrir pasta dos stems**.
+Dê duplo clique em `START-STEMLAB.bat`. Escolha uma música, o preset Core
+Stems e WAV ou FLAC; cada execução cria uma pasta nova em `outputs/`. Ao
+concluir, use o player sincronizado, Mute/Solo/Volume, A/B Original/Stems,
+exporte um ou todos os stems ou abra a pasta do resultado.
 
-O modo `Vocals HQ` usa um peso local experimental cuja licença continua
-desconhecida e não redistribuível pela decisão atual. O modo `6 Stems` produz
-vocals, drums, bass, guitar, piano e other com `BS-RoFormer SW by jarredou`.
+O preset `Core Stems` produz vocals, drums, bass, guitar, piano e other com o
+BS-RoFormer SW local já aprovado. A ação separada **Extrair áudio de vídeo…**
+gera WAV ou FLAC lossless com o FFmpeg local.
 
 Relatórios em `docs/generated/` são snapshots históricos e não precisam ser reescritos quando o estado do Git/remoto muda depois.
 

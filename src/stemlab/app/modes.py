@@ -59,7 +59,7 @@ VOCALS_HQ = ModeDefinition(
 
 SIX_STEMS = ModeDefinition(
     mode_id="six-stems",
-    label="6 Stems",
+    label="Core Stems",
     description="BS-RoFormer SW: vocals, drums, bass, guitar, piano and other.",
     model_id="bs-roformer-sw-jarredou",
     checkpoint_filename="BS-Roformer-SW.ckpt",

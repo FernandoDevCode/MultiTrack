@@ -8,6 +8,9 @@ from PySide6.QtCore import QObject, QProcess, QProcessEnvironment, Signal
 from stemlab.workers.protocol import JobLaunch, build_worker_command, parse_event_line
 
 
+_EVENT_PREFIX_BYTES = b"STEMLAB_EVENT "
+
+
 class QProcessJob(QObject):
     job_started = Signal()
     status_changed = Signal(str)
@@ -26,7 +29,7 @@ class QProcessJob(QObject):
         self.process.readyReadStandardError.connect(self._read_stderr)
         self.process.finished.connect(self._finished)
         self.process.errorOccurred.connect(self._process_error)
-        self._stdout_buffer = ""
+        self._stdout_buffer = b""
         self._stderr_tail = ""
         self._terminal_event_received = False
 
@@ -40,7 +43,7 @@ class QProcessJob(QObject):
         program, arguments = build_worker_command(self.repo_root, job)
         if not Path(program).is_file():
             raise FileNotFoundError(f"Local worker runtime not found: {program}")
-        self._stdout_buffer = ""
+        self._stdout_buffer = b""
         self._stderr_tail = ""
         self._terminal_event_received = False
         self.process.setProcessEnvironment(self._project_environment())
@@ -65,6 +68,8 @@ class QProcessJob(QObject):
         for key, path in local_paths.items():
             path.mkdir(parents=True, exist_ok=True)
             environment.insert(key, str(path))
+        environment.insert("PYTHONUTF8", "1")
+        environment.insert("PYTHONIOENCODING", "utf-8:strict")
         path_value = environment.value("PATH")
         environment.insert(
             "PATH",
@@ -79,13 +84,30 @@ class QProcessJob(QObject):
         return environment
 
     def _read_stdout(self) -> None:
-        self._stdout_buffer += bytes(self.process.readAllStandardOutput()).decode(
-            "utf-8", errors="replace"
-        )
-        lines = self._stdout_buffer.split("\n")
+        self._stdout_buffer += bytes(self.process.readAllStandardOutput())
+        lines = self._stdout_buffer.split(b"\n")
         self._stdout_buffer = lines.pop()
         for line in lines:
-            self._handle_line(line.rstrip("\r"))
+            self._handle_stdout_line(line.rstrip(b"\r"))
+
+    def _handle_stdout_line(self, line: bytes) -> None:
+        if self._terminal_event_received:
+            return
+        if not line.startswith(_EVENT_PREFIX_BYTES):
+            return
+        try:
+            decoded = line.decode("utf-8", errors="strict")
+        except UnicodeDecodeError as exc:
+            self._protocol_decode_failed(exc)
+            return
+        self._handle_line(decoded)
+
+    def _protocol_decode_failed(self, error: UnicodeDecodeError) -> None:
+        self._terminal_event_received = True
+        self.failed.emit(
+            "Worker protocol contém UTF-8 inválido; o resultado não foi carregado. "
+            f"Posição do byte: {error.start}."
+        )
 
     def _handle_line(self, line: str) -> None:
         try:
@@ -110,8 +132,8 @@ class QProcessJob(QObject):
 
     def _finished(self, exit_code: int, _exit_status) -> None:
         if self._stdout_buffer:
-            self._handle_line(self._stdout_buffer.rstrip("\r"))
-            self._stdout_buffer = ""
+            self._handle_stdout_line(self._stdout_buffer.rstrip(b"\r"))
+            self._stdout_buffer = b""
         if not self._terminal_event_received:
             detail = self._stderr_tail.strip().splitlines()
             suffix = f" Detalhe: {detail[-1]}" if detail else ""

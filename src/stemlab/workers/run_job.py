@@ -2,11 +2,17 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 from stemlab.app import SeparationService, build_request
 from stemlab.domain import OutputFormat
 from stemlab.separation.audio_separator_adapter import AudioSeparatorBackend
 from stemlab.workers.protocol import encode_event
+
+
+def configure_worker_stdout() -> None:
+    """Keep the line-delimited worker protocol UTF-8 on Windows as well."""
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict", newline="\n")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,6 +29,7 @@ def _emit(event_type: str, message: str, payload=None) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_worker_stdout()
     args = build_parser().parse_args(argv)
     repo_root = Path(__file__).resolve().parents[3]
     _emit("started", "Worker iniciado.", {"output_dir": str(args.output.resolve())})
