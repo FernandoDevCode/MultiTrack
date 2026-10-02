@@ -11,7 +11,8 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 - **Fast Track v0.1 — PASS:** launcher, GUI PySide6 e worker isolado validados em CUDA.
 - **BS-RoFormer SW migration — PASS:** `Core Stems`/seis stems roda localmente em CUDA.
 - **v0.2 Checkpoint 1 — PASS:** Core Stems, player multistem sincronizado, A/B, export byte-identical, extração lossless de áudio de vídeo e seam mínima de pipelines.
-- **Próximo:** Checkpoint 2 permanece não iniciado.
+- **v0.2 Checkpoint 1 — aceitação manual PASS:** player/export/extração e paths Unicode validados pelo usuário.
+- **Agora:** v0.2 Checkpoint 2 — análise local de instrumentação com CLAP + confirmação humana + planejamento adaptativo.
 
 ## Abrir o aplicativo
 
@@ -56,7 +57,7 @@ Não estamos descartando o plano original. Estamos mudando a ordem para começar
 6. `docs/04_TEST_AND_EVAL.md`
 7. `docs/generated/phase1-report.md`
 
-Para a tarefa atual use `docs/12_V02_CHECKPOINT1.md` e `prompts/V02_CHECKPOINT1.md`. O prompt do Fast Track é histórico.
+Para a tarefa atual use `docs/13_V02_CHECKPOINT2.md` e `prompts/V02_CHECKPOINT2.md`. Checkpoint 1 e Fast Track são históricos.
 
 ## Roadmap original
 
