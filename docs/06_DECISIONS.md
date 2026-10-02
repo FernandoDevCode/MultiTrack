@@ -101,3 +101,15 @@ Decisão:
 Evidência:
 Consequências:
 ```
+
+## D-013 — CLAP não é autoridade de routing
+
+**Status:** accepted.
+
+Contexto: o Checkpoint 2 integrou `laion/larger_clap_music` como detector local advisory e passou todos os gates técnicos. No quality gate manual com música conhecida, guitarra claramente audível não foi sugerida e categorias próximas apresentaram ambiguidades.
+
+Decisão: manter o CLAP somente como recurso experimental/advisory. Resultado de detector nunca autoriza automaticamente um pipeline nem substitui confirmação humana. Não gastar o próximo ciclo calibrando thresholds apenas para fazer casos conhecidos passarem.
+
+Evidência: teste manual do usuário após o technical PASS do Checkpoint 2; `docs/generated/v02-checkpoint2-report.md` já registrava que similaridade CLAP não é probabilidade nem prova de presença.
+
+Consequências: priorizar qualidade de áudio real. O próximo gate é benchmark de especialistas Guitar Lead/Rhythm e Bass; a infraestrutura de análise/planning permanece reutilizável, mas o adapter CLAP pode ser substituído no futuro.
