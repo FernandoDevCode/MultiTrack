@@ -8,8 +8,9 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 
 - **Fase 0 — PASS:** runtime local, RTX 5060/CUDA, FFmpeg e `audio-separator` validados.
 - **Fase 1 — PASS:** engine headless permanente implementado com `SeparationService` + adapter de `audio-separator`.
-- **Fast Track v0.1 — PASS:** launcher, GUI PySide6, worker isolado e modos
-  `Vocals HQ (experimental)` e `6 Stems` validados em CUDA.
+- **Fast Track v0.1 — PASS:** launcher, GUI PySide6 e worker isolado validados em CUDA.
+- **BS-RoFormer SW migration — PASS:** `Core Stems`/seis stems roda localmente em CUDA.
+- **Agora:** v0.2 Checkpoint 1 — player multistem sincronizado, export, extração de áudio de vídeo e seam mínima de pipelines.
 
 ## Abrir o aplicativo
 
@@ -53,7 +54,7 @@ Não estamos descartando o plano original. Estamos mudando a ordem para começar
 6. `docs/04_TEST_AND_EVAL.md`
 7. `docs/generated/phase1-report.md`
 
-Depois use somente `prompts/FAST_TRACK_v01.md`.
+Para a tarefa atual use `docs/12_V02_CHECKPOINT1.md` e `prompts/V02_CHECKPOINT1.md`. O prompt do Fast Track é histórico.
 
 ## Roadmap original
 
