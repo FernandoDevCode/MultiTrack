@@ -12,7 +12,7 @@ from stemlab.domain import DevicePolicy, OutputFormat
 def test_fast_track_exposes_only_two_curated_modes() -> None:
     assert [mode.label for mode in MODES] == [
         "Vocals HQ (experimental)",
-        "6 Stems (baseline)",
+        "6 Stems",
     ]
     assert VOCALS_HQ.expected_roles == ("instrumental", "vocals")
     assert SIX_STEMS.expected_roles == (
@@ -42,9 +42,13 @@ def test_six_stem_request_uses_verified_local_artifacts(tmp_path: Path) -> None:
     )
     assert request.device_policy is DevicePolicy.CUDA_REQUIRED
     assert request.output_format is OutputFormat.FLAC
-    assert request.model.backend_filename == "htdemucs_6s.yaml"
-    assert request.model.checkpoint_path == tmp_path / "models" / "5c90dfd2-34c22ccb.th"
-    assert request.model.config_paths == (tmp_path / "models" / "htdemucs_6s.yaml",)
+    assert request.model.backend_filename is None
+    assert request.model.checkpoint_path == tmp_path / "models" / "BS-Roformer-SW.ckpt"
+    assert request.model.expected_sha256 == "24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e"
+    assert request.model.config_paths == (tmp_path / "models" / "BS-Roformer-SW.yaml",)
+    assert request.model.expected_config_sha256 == (
+        "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",
+    )
     assert request.expected_roles == SIX_STEMS.expected_roles
 
 

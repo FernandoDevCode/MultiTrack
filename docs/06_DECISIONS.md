@@ -69,15 +69,27 @@ posteriores.
 
 ## D-011 — htdemucs_6s como baseline de seis stems do Fast Track v0.1
 
-**Status:** accepted.
+**Status:** superseded by D-012.
 
-O Fast Track usa o único modelo `htdemucs_6s` indicado no plano ativo para
+O Fast Track usou o único modelo `htdemucs_6s` indicado no plano ativo para
 produzir vocals, drums, bass, guitar, piano e other. O loader Demucs v4 já vem
 no `audio-separator` 0.47.0, portanto nenhum segundo backend ou pacote Demucs
 foi introduzido. O peso público upstream e o YAML são mantidos em `models/`,
 verificados por SHA-256 antes da carga e não são automaticamente promovidos a
 um default redistribuível. Comparação de qualidade e decisão de distribuição
 continuam sendo gates posteriores.
+
+## D-012 — BS-RoFormer SW como modo ativo de seis stems
+
+**Status:** accepted.
+
+O modo ativo de seis stems usa `BS-RoFormer SW by jarredou`, com checkpoint e
+YAML obtidos da revisão imutável `3b39120409f3c2d50e9cc4c391f4169131e9d643` de
+`lainlives/audio-separator-models`. O instalador local registrou e verificou
+o checkpoint de 699.412.152 bytes (`24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e`)
+e o YAML de 4.653 bytes (`b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a`).
+O `SeparationService` revalida ambos os SHA-256 antes de cada carga; a UI
+continua expondo somente o modo curado e requer CUDA, sem fallback silencioso.
 
 ## Template para nova decisão
 

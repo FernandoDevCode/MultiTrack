@@ -19,7 +19,7 @@ def test_worker_command_keeps_user_paths_as_arguments(tmp_path: Path) -> None:
     output_path = tmp_path / "outputs" / "run & keep"
     program, arguments = build_worker_command(
         tmp_path,
-        JobLaunch(input_path, "six-stems-baseline", output_path, OutputFormat.FLAC),
+        JobLaunch(input_path, "six-stems", output_path, OutputFormat.FLAC),
     )
     assert program == str(tmp_path.resolve() / ".venv" / "Scripts" / "python.exe")
     assert arguments[:3] == ["-m", "stemlab.workers.run_job", "--input"]

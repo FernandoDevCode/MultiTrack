@@ -23,13 +23,13 @@ EXPECTED_MODEL_FILES = {
         2_273,
         "2bfdd16c656bd9519aba757cc4f8834b7ede675eb1e00ec4772d74ae1c41af7f",
     ),
-    "5c90dfd2-34c22ccb.th": (
-        54_996_327,
-        "34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+    "BS-Roformer-SW.ckpt": (
+        699_412_152,
+        "24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e",
     ),
-    "htdemucs_6s.yaml": (
-        21,
-        "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+    "BS-Roformer-SW.yaml": (
+        4_653,
+        "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",
     ),
 }
 REQUIRED_LOCAL_ENV = (

@@ -58,20 +58,19 @@ VOCALS_HQ = ModeDefinition(
 )
 
 SIX_STEMS = ModeDefinition(
-    mode_id="six-stems-baseline",
-    label="6 Stems (baseline)",
-    description="htdemucs_6s baseline: vocals, drums, bass, guitar, piano and other.",
-    model_id="htdemucs-6s-baseline",
-    checkpoint_filename="5c90dfd2-34c22ccb.th",
-    checkpoint_sha256="34c22ccb381c6f9fdbf324f04e1e2fe21aaaf293f5ded163a162697ff9a02ddd",
+    mode_id="six-stems",
+    label="6 Stems",
+    description="BS-RoFormer SW: vocals, drums, bass, guitar, piano and other.",
+    model_id="bs-roformer-sw-jarredou",
+    checkpoint_filename="BS-Roformer-SW.ckpt",
+    checkpoint_sha256="24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e",
     config_files=(
         (
-            "htdemucs_6s.yaml",
-            "207405151270af8fd81c2373c25d27950916682ac91dca7884a11ce13dad6f58",
+            "BS-Roformer-SW.yaml",
+            "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",
         ),
     ),
     expected_roles=("vocals", "drums", "bass", "guitar", "piano", "other"),
-    backend_filename="htdemucs_6s.yaml",
 )
 
 MODES = (VOCALS_HQ, SIX_STEMS)

@@ -47,13 +47,13 @@ def test_ui_basic_states_and_success(tmp_path: Path, qt_app, monkeypatch) -> Non
 
     assert not window.separate_button.isEnabled()
     assert not window.open_folder_button.isEnabled()
-    assert window.mode_combo.currentText() == "6 Stems (baseline)"
+    assert window.mode_combo.currentText() == "6 Stems"
 
     window.set_input_path(input_path)
     assert window.separate_button.isEnabled()
     window.start_separation()
 
-    assert worker.last_job.mode_id == "six-stems-baseline"
+    assert worker.last_job.mode_id == "six-stems"
     assert worker.last_job.output_format.value == "WAV"
     assert not window.separate_button.isEnabled()
     assert not window.mode_combo.isEnabled()
