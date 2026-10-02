@@ -10,15 +10,15 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 - Fase 1 (engine headless): **PASS**.
 - Fast Track v0.1: **PASS**.
 - v0.2 Checkpoint 1 — Core + Player: **PASS**, inclusive aceitação manual do usuário.
-- v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **technical PASS**; detector permanece advisory/experimental até o quality gate manual.
-- Caminho ativo: **quality gate manual do Checkpoint 2**. Nenhum especialista posterior foi iniciado.
+- v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **technical PASS / manual quality FAIL**. Em música conhecida pelo usuário, o CLAP não sugeriu guitarra claramente audível e confundiu categorias; ele permanece somente advisory/experimental e não é autoridade de routing.
+- Caminho ativo: **v0.2 Checkpoint 3 — Specialist Quality Gate (Guitar + Bass)**, definido em `docs/14_V02_CHECKPOINT3.md`.
 - O roadmap original de 7 fases em `docs/05_ROADMAP.md` continua válido como mapa de convergência/hardening. Ele não deve ser executado mecanicamente fase a fase enquanto o Fast Track estiver ativo.
 - Depois da v0.1 utilizável, faça um **gap analysis** contra as fases originais e implemente somente o que ainda trouxer valor.
 
 ## Fontes de verdade
 
-- Para o caminho ativo imediato: `docs/13_V02_CHECKPOINT2.md`.
-- `docs/12_V02_CHECKPOINT1.md` e `docs/11_FAST_TRACK.md` permanecem históricos.
+- Para o caminho ativo imediato: `docs/14_V02_CHECKPOINT3.md`.
+- `docs/13_V02_CHECKPOINT2.md`, `docs/12_V02_CHECKPOINT1.md` e `docs/11_FAST_TRACK.md` permanecem históricos.
 - Para produto e escopo final: `docs/00_PRODUCT.md`.
 - Para limites arquiteturais: `docs/01_SYSTEM_DESIGN.md`.
 - Para escolha/promulgação de modelos: `docs/02_MODEL_STRATEGY.md` e a skill `model-evaluation`.
