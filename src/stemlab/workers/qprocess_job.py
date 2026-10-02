@@ -70,6 +70,8 @@ class QProcessJob(QObject):
             environment.insert(key, str(path))
         environment.insert("PYTHONUTF8", "1")
         environment.insert("PYTHONIOENCODING", "utf-8:strict")
+        environment.insert("HF_HUB_OFFLINE", "1")
+        environment.insert("TRANSFORMERS_OFFLINE", "1")
         path_value = environment.value("PATH")
         environment.insert(
             "PATH",

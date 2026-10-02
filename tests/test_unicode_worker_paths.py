@@ -47,6 +47,8 @@ def test_qprocess_worker_payload_preserves_unicode_path_and_player_opens_it(
     environment = job._project_environment()
     assert environment.value("PYTHONUTF8") == "1"
     assert environment.value("PYTHONIOENCODING") == "utf-8:strict"
+    assert environment.value("HF_HUB_OFFLINE") == "1"
+    assert environment.value("TRANSFORMERS_OFFLINE") == "1"
     payloads: list[dict] = []
     failures: list[str] = []
     loop = QEventLoop()

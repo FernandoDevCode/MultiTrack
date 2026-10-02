@@ -12,7 +12,8 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 - **BS-RoFormer SW migration — PASS:** `Core Stems`/seis stems roda localmente em CUDA.
 - **v0.2 Checkpoint 1 — PASS:** Core Stems, player multistem sincronizado, A/B, export byte-identical, extração lossless de áudio de vídeo e seam mínima de pipelines.
 - **v0.2 Checkpoint 1 — aceitação manual PASS:** player/export/extração e paths Unicode validados pelo usuário.
-- **Agora:** v0.2 Checkpoint 2 — análise local de instrumentação com CLAP + confirmação humana + planejamento adaptativo.
+- **v0.2 Checkpoint 2 — technical PASS:** análise local CLAP em CUDA, sugestões editáveis e planejamento adaptativo; quality gate manual ainda pendente.
+- **Agora:** validar sugestões em músicas conhecidas. Nenhum separador especialista posterior foi iniciado.
 
 ## Abrir o aplicativo
 
@@ -24,6 +25,10 @@ exporte um ou todos os stems ou abra a pasta do resultado.
 O preset `Core Stems` produz vocals, drums, bass, guitar, piano e other com o
 BS-RoFormer SW local já aprovado. A ação separada **Extrair áudio de vídeo…**
 gera WAV ou FLAC lossless com o FFmpeg local.
+
+O botão **Analisar instrumentos** executa o CLAP local em um processo separado,
+mostra sugestões editáveis e informa quais alvos já são atendidos pelo Core
+Stems. As sugestões não são probabilidades e devem ser confirmadas pelo usuário.
 
 Relatórios em `docs/generated/` são snapshots históricos e não precisam ser reescritos quando o estado do Git/remoto muda depois.
 

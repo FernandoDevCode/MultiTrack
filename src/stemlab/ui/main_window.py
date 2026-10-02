@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QPushButton,
     QRadioButton,
+    QScrollArea,
     QSlider,
     QVBoxLayout,
     QWidget,
@@ -27,16 +28,27 @@ from stemlab.app.export_service import ExportError, ExportService
 from stemlab.audio import MultiStemPlayer, probe_audio
 from stemlab.domain import OutputFormat
 from stemlab.ui.stem_mixer import StemMixer
+from stemlab.ui.instrument_analysis_panel import InstrumentAnalysisPanel
+from stemlab.workers.analysis_protocol import AnalysisLaunch
 from stemlab.workers.protocol import JobLaunch
+from stemlab.workers.qprocess_analysis import QProcessAnalysisJob
 from stemlab.workers.qprocess_audio import QProcessAudioExtraction, QProcessMonitorCopy
 from stemlab.workers.qprocess_job import QProcessJob
 
 
 class MainWindow(QMainWindow):
-    def __init__(self, *, repo_root: Path | None = None, worker=None, player=None) -> None:
+    def __init__(
+        self,
+        *,
+        repo_root: Path | None = None,
+        worker=None,
+        player=None,
+        analysis_worker=None,
+    ) -> None:
         super().__init__()
         self.repo_root = (repo_root or Path(__file__).resolve().parents[3]).resolve()
         self.worker = worker or QProcessJob(self.repo_root, self)
+        self.analysis_worker = analysis_worker or QProcessAnalysisJob(self.repo_root, self)
         self.player = player or MultiStemPlayer()
         self.export_service = ExportService()
         self.extraction_job = QProcessAudioExtraction(self.repo_root, self)
@@ -65,10 +77,12 @@ class MainWindow(QMainWindow):
         file_row = QHBoxLayout()
         self.open_audio_button = QPushButton("Escolher música…")
         self.extract_audio_button = QPushButton("Extrair áudio de vídeo…")
+        self.analyze_button = QPushButton("Analisar instrumentos")
         self.file_label = QLabel("Nenhum arquivo selecionado")
         self.file_label.setWordWrap(True)
         file_row.addWidget(self.open_audio_button)
         file_row.addWidget(self.extract_audio_button)
+        file_row.addWidget(self.analyze_button)
         file_row.addWidget(self.file_label, 1)
         layout.addLayout(file_row)
 
@@ -97,6 +111,13 @@ class MainWindow(QMainWindow):
         self.status_label = QLabel()
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
+
+        self.analysis_group = QGroupBox("Análise de instrumentos")
+        analysis_layout = QVBoxLayout(self.analysis_group)
+        self.instrument_panel = InstrumentAnalysisPanel(self.analysis_group)
+        analysis_layout.addWidget(self.instrument_panel)
+        layout.addWidget(self.analysis_group)
+        self.analysis_group.setVisible(False)
 
         self.result_group = QGroupBox("Player sincronizado")
         result_layout = QVBoxLayout(self.result_group)
@@ -135,7 +156,10 @@ class MainWindow(QMainWindow):
         result_layout.addLayout(actions)
         layout.addWidget(self.result_group)
         layout.addStretch(1)
-        self.setCentralWidget(central)
+        scroll = QScrollArea(self)
+        scroll.setWidgetResizable(True)
+        scroll.setWidget(central)
+        self.setCentralWidget(scroll)
 
         self.playback_timer = QTimer(self)
         self.playback_timer.setInterval(100)
@@ -144,6 +168,7 @@ class MainWindow(QMainWindow):
 
         self.open_audio_button.clicked.connect(self._choose_file)
         self.extract_audio_button.clicked.connect(self._choose_video_extraction)
+        self.analyze_button.clicked.connect(self.start_instrument_analysis)
         self.separate_button.clicked.connect(self.start_separation)
         self.open_folder_button.clicked.connect(self.open_output_folder)
         self.export_all_button.clicked.connect(self.export_all)
@@ -169,6 +194,13 @@ class MainWindow(QMainWindow):
         self.extraction_job.failed.connect(self._recoverable_error)
         self.monitor_job.completed.connect(lambda metadata: self._load_player(Path(metadata.path)))
         self.monitor_job.failed.connect(self._recoverable_error)
+        self.analysis_worker.job_started.connect(
+            lambda: self.status_label.setText("Analisando janelas com CLAP local em CUDA…")
+        )
+        self.analysis_worker.status_changed.connect(self.status_label.setText)
+        self.analysis_worker.completed.connect(self._analysis_completed)
+        self.analysis_worker.failed.connect(self._analysis_failed)
+        self.analysis_worker.job_finished.connect(self._analysis_finished)
 
     def _choose_file(self) -> None:
         selected, _ = QFileDialog.getOpenFileName(
@@ -182,6 +214,9 @@ class MainWindow(QMainWindow):
 
     def set_input_path(self, path: Path) -> None:
         self._release_result()
+        self.instrument_panel.clear()
+        self.analysis_group.setVisible(False)
+        self.analyze_button.setText("Analisar instrumentos")
         self.input_path = path.resolve()
         self.file_label.setText(self.input_path.name)
         self.file_label.setToolTip(str(self.input_path))
@@ -192,7 +227,22 @@ class MainWindow(QMainWindow):
         if self.input_path is None or not self.input_path.is_file():
             self._job_failed("Escolha um arquivo de áudio válido.")
             return
-        pipeline = get_pipeline(self.mode_combo.currentData())
+        if self.analysis_worker.running:
+            self._recoverable_error("Aguarde a análise de instrumentos terminar.")
+            return
+        pipeline = (
+            self.instrument_panel.current_plan()
+            if self.instrument_panel.has_analysis
+            else get_pipeline(self.mode_combo.currentData())
+        )
+        if self.instrument_panel.has_analysis and not pipeline.confirmed_targets:
+            self._recoverable_error("Confirme ao menos um instrumento antes de usar o plano analisado.")
+            return
+        if self.instrument_panel.has_analysis and not pipeline.steps:
+            self._recoverable_error(
+                "Os instrumentos confirmados ainda não possuem separador especializado."
+            )
+            return
         if len(pipeline.steps) != 1:
             self._job_failed("Este checkpoint aceita somente pipelines de um passo.")
             return
@@ -213,6 +263,9 @@ class MainWindow(QMainWindow):
     def _set_idle_state(self) -> None:
         self.open_audio_button.setEnabled(True)
         self.extract_audio_button.setEnabled(not self.extraction_job.running)
+        self.analyze_button.setEnabled(
+            bool(self.input_path and self.input_path.is_file()) and not self.analysis_worker.running
+        )
         self.mode_combo.setEnabled(True)
         self.format_combo.setEnabled(True)
         self.separate_button.setEnabled(bool(self.input_path and self.input_path.is_file()))
@@ -226,6 +279,7 @@ class MainWindow(QMainWindow):
     def _set_processing_state(self) -> None:
         self._release_result()
         self.open_audio_button.setEnabled(False)
+        self.analyze_button.setEnabled(False)
         self.mode_combo.setEnabled(False)
         self.format_combo.setEnabled(False)
         self.separate_button.setEnabled(False)
@@ -297,11 +351,52 @@ class MainWindow(QMainWindow):
         self.mode_combo.setEnabled(True)
         self.format_combo.setEnabled(True)
         self.separate_button.setEnabled(bool(self.input_path and self.input_path.is_file()))
+        self.analyze_button.setEnabled(bool(self.input_path and self.input_path.is_file()))
         self.progress.setRange(0, 1)
         self.progress.setValue(0)
 
     def _update_mode_description(self) -> None:
         self.mode_description.setText(get_pipeline(self.mode_combo.currentData()).description)
+
+    def start_instrument_analysis(self) -> None:
+        if self.input_path is None or not self.input_path.is_file():
+            self._recoverable_error("Escolha um arquivo de áudio válido.")
+            return
+        if self.worker.running:
+            self._recoverable_error("Aguarde a separação terminar.")
+            return
+        self.open_audio_button.setEnabled(False)
+        self.extract_audio_button.setEnabled(False)
+        self.analyze_button.setEnabled(False)
+        self.separate_button.setEnabled(False)
+        self.progress.setRange(0, 0)
+        self.status_label.setText("Iniciando análise de instrumentos…")
+        try:
+            self.analysis_worker.start(AnalysisLaunch(self.input_path))
+        except Exception as exc:
+            self._analysis_failed(str(exc))
+            self._analysis_finished()
+
+    def _analysis_completed(self, payload: dict) -> None:
+        result = payload["result"]
+        self.instrument_panel.set_result(result)
+        self.analysis_group.setVisible(True)
+        self.analyze_button.setText("Reanalisar instrumentos")
+        self.status_label.setText(
+            f"Sugestões concluídas em {result['runtime_seconds']:.2f}s usando "
+            f"{result['effective_device']}; confirme ou corrija a lista."
+        )
+
+    def _analysis_failed(self, message: str) -> None:
+        self.status_label.setText(f"Erro recuperável na análise: {message}")
+
+    def _analysis_finished(self) -> None:
+        self.open_audio_button.setEnabled(True)
+        self.extract_audio_button.setEnabled(not self.extraction_job.running)
+        self.analyze_button.setEnabled(bool(self.input_path and self.input_path.is_file()))
+        self.separate_button.setEnabled(bool(self.input_path and self.input_path.is_file()))
+        self.progress.setRange(0, 1)
+        self.progress.setValue(0)
 
     def _toggle_playback(self) -> None:
         try:
@@ -411,5 +506,7 @@ class MainWindow(QMainWindow):
             self.extraction_job.stop()
         if self.monitor_job.running:
             self.monitor_job.stop()
+        if self.analysis_worker.running:
+            self.analysis_worker.stop()
         self.player.close()
         super().closeEvent(event)

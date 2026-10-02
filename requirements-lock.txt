@@ -1,12 +1,15 @@
 # Generated from the successful Windows/Python 3.12 environment spike.
 # Install requirements-gpu.txt first to preserve the CUDA wheel selection.
 absl-py==2.5.0
+annotated-doc==0.0.5
+anyio==4.15.1
 audio-separator==0.47.0
 audioread==3.1.0
 beartype==0.18.5
 certifi==2026.7.22
 cffi==2.1.1
 charset-normalizer==3.5.1
+click==8.5.0
 cloudpickle==3.1.2
 colorama==0.4.6
 Cython==3.3.0
@@ -16,6 +19,11 @@ einops==0.8.2
 filelock==4.0.6
 flatbuffers==25.12.19
 fsspec==2026.9.0
+h11==0.16.0
+hf-xet==1.6.0
+httpcore==1.0.9
+httpx==0.28.1
+huggingface_hub==1.33.0
 idna==3.20
 iniconfig==2.3.0
 Jinja2==3.1.6
@@ -25,6 +33,8 @@ lazy-loader==0.6
 librosa==1.0.0
 llvmlite==0.49.0
 MarkupSafe==3.0.3
+markdown-it-py==4.2.0
+mdurl==0.1.2
 ml_collections==1.1.0
 ml_dtypes==0.6.0
 mpmath==1.3.0
@@ -50,12 +60,16 @@ pytest==9.1.1
 PySide6-Essentials==6.9.2
 PyYAML==6.0.3
 requests==2.34.2
+regex==2026.9.29
 resampy==0.4.3
+rich==15.0.0
 rotary-embedding-torch==0.6.5
 samplerate==0.1.0
+safetensors==0.8.0
 scikit-learn==1.9.1
 scipy==1.18.1
 shiboken6==6.9.2
+shellingham==1.5.4
 setuptools==84.0.0
 six==1.17.0
 soundfile==0.14.0
@@ -63,8 +77,11 @@ sounddevice==0.5.6
 soxr==1.1.0
 sympy==1.14.0
 threadpoolctl==3.7.0
+tokenizers==0.23.2
 torch @ https://download.pytorch.org/whl/cu128/torch-2.8.0%2Bcu128-cp312-cp312-win_amd64.whl#sha256=0ad925202387f4e7314302a1b4f8860fa824357f9b1466d7992bf276370ebcff
 torchvision==0.23.0
 tqdm==4.70.1
+transformers==5.18.0
+typer==0.27.2
 typing_extensions==4.16.0
 urllib3==2.8.0

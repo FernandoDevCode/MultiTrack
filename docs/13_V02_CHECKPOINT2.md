@@ -1,6 +1,6 @@
 # StemLab v0.2 — Checkpoint 2: Instrument Analysis + Adaptive Planning
 
-**Status:** active implementation checkpoint
+**Status:** technical **PASS** em 2026-10-02; quality/manual gate pendente; evidências em `docs/generated/v02-checkpoint2-report.md`
 
 **Goal:** add an advisory local music-instrument analysis layer and make pipeline planning target-aware without yet adding specialist separation models.
 

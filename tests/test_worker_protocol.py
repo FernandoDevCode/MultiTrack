@@ -12,6 +12,7 @@ from stemlab.workers.protocol import (
     encode_event,
     parse_event_line,
 )
+from stemlab.workers.analysis_protocol import AnalysisLaunch, build_analysis_worker_command
 
 
 def test_worker_command_keeps_user_paths_as_arguments(tmp_path: Path) -> None:
@@ -49,3 +50,11 @@ def test_worker_event_rejects_unknown_protocol() -> None:
         parse_event_line(
             'STEMLAB_EVENT {"protocol_version":2,"type":"status","message":"x","payload":{}}'
         )
+
+
+def test_analysis_worker_command_preserves_unicode_and_uses_utf8(tmp_path: Path) -> None:
+    input_path = tmp_path / "á é í ó ú ã õ ç" / "Ana-Nóbrega.wav"
+    program, arguments = build_analysis_worker_command(tmp_path, AnalysisLaunch(input_path))
+    assert program == str(tmp_path.resolve() / ".venv" / "Scripts" / "python.exe")
+    assert arguments[:5] == ["-X", "utf8", "-m", "stemlab.workers.run_analysis", "--input"]
+    assert arguments[-1] == str(input_path.resolve())

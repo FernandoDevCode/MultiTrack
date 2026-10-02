@@ -41,6 +41,8 @@ def test_core_stems_plan_is_plain_data_and_resolves_to_existing_mode() -> None:
         "label": "Core Stems",
         "description": "BS-RoFormer SW: vocals, drums, bass, guitar, piano e other.",
         "steps": ({"mode_id": "six-stems"},),
+        "confirmed_targets": (),
+        "capabilities": (),
     }
     assert CORE_STEMS.steps[0].mode_id == SIX_STEMS.mode_id
 

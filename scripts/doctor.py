@@ -198,6 +198,34 @@ def check_sounddevice() -> None:
         fail(f"sounddevice version mismatch: expected 0.5.6, got {version}")
 
 
+def check_transformers_and_detector() -> None:
+    try:
+        version = importlib.metadata.version("transformers")
+    except Exception as exc:
+        fail(f"Unable to inspect transformers: {exc}")
+        return
+    if version != "5.18.0":
+        fail(f"transformers version mismatch: expected 5.18.0, got {version}")
+        return
+    result("PASS", f"transformers {version}")
+    try:
+        from stemlab.instrumentation import verify_detector_artifacts
+
+        receipt = verify_detector_artifacts(
+            REPO_ROOT / "models" / "instrument-detector" / "larger_clap_music",
+            REPO_ROOT / ".tmp" / "larger-clap-music-install.json",
+        )
+    except Exception as exc:
+        fail(f"Instrument detector verification failed: {exc}")
+        return
+    result(
+        "PASS",
+        "Instrument detector verified: "
+        f"revision={receipt['source_revision']}; "
+        f"weight_sha256={receipt['files']['pytorch_model.bin']['sha256']}",
+    )
+
+
 def check_local_tool(name: str) -> None:
     expected_parent = REPO_ROOT / "tools" / "ffmpeg" / "bin"
     executable_path = expected_parent / f"{name}.exe"
@@ -259,6 +287,7 @@ def main() -> int:
     check_audio_separator()
     check_pyside()
     check_sounddevice()
+    check_transformers_and_detector()
     check_local_tool("ffmpeg")
     check_local_tool("ffprobe")
     check_smoke_model()

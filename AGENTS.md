@@ -10,7 +10,8 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 - Fase 1 (engine headless): **PASS**.
 - Fast Track v0.1: **PASS**.
 - v0.2 Checkpoint 1 — Core + Player: **PASS**, inclusive aceitação manual do usuário.
-- Caminho ativo: **v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning**, definido em `docs/13_V02_CHECKPOINT2.md`.
+- v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **technical PASS**; detector permanece advisory/experimental até o quality gate manual.
+- Caminho ativo: **quality gate manual do Checkpoint 2**. Nenhum especialista posterior foi iniciado.
 - O roadmap original de 7 fases em `docs/05_ROADMAP.md` continua válido como mapa de convergência/hardening. Ele não deve ser executado mecanicamente fase a fase enquanto o Fast Track estiver ativo.
 - Depois da v0.1 utilizável, faça um **gap analysis** contra as fases originais e implemente somente o que ainda trouxer valor.
 

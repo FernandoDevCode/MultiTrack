@@ -26,17 +26,30 @@ from .models import (
     StemArtifact,
     TimingInfo,
 )
+from .instrumentation import (
+    AnalysisWindow,
+    CANONICAL_TARGETS,
+    ConfirmedTargets,
+    InstrumentEvidence,
+    InstrumentationAnalysisResult,
+    TargetCapability,
+)
 
 __all__ = [
     "AudioMetadata",
+    "AnalysisWindow",
     "BackendSeparationError",
     "DeviceInfo",
     "DevicePolicy",
     "DeviceUnavailableError",
+    "CANONICAL_TARGETS",
+    "ConfirmedTargets",
     "FileArtifact",
     "InputModifiedError",
     "InputNotFoundError",
     "InputValidationError",
+    "InstrumentEvidence",
+    "InstrumentationAnalysisResult",
     "ModelArtifact",
     "ModelIntegrityError",
     "ModelMissingError",
@@ -49,5 +62,6 @@ __all__ = [
     "SeparationResult",
     "StemArtifact",
     "StemLabError",
+    "TargetCapability",
     "TimingInfo",
 ]

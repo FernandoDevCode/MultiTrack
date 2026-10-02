@@ -5,7 +5,7 @@ from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QEventLoop, QObject, QTimer, Signal
 from PySide6.QtWidgets import QApplication
 import numpy as np
 import pytest
@@ -30,6 +30,51 @@ class FakeWorker(QObject):
         self.last_job = job
         self.running = True
         self.job_started.emit()
+
+    def stop(self) -> None:
+        self.running = False
+
+
+class FakeAnalysisWorker(QObject):
+    job_started = Signal()
+    status_changed = Signal(str)
+    completed = Signal(dict)
+    failed = Signal(str)
+    job_finished = Signal()
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.running = False
+        self.last_launch = None
+
+    def start(self, launch) -> None:
+        self.last_launch = launch
+        self.running = True
+        self.job_started.emit()
+        QTimer.singleShot(20, self._complete)
+
+    def _complete(self) -> None:
+        targets = (
+            "vocals", "drums", "bass", "guitar", "piano", "keys", "synth_pad",
+            "organ", "percussion", "strings", "brass", "woodwind", "choir",
+        )
+        self.completed.emit(
+            {
+                "result": {
+                    "runtime_seconds": 0.01,
+                    "effective_device": "cuda",
+                    "evidence": [
+                        {
+                            "target_id": target,
+                            "state": "suggested" if index < 5 else "not_suggested",
+                        }
+                        for index, target in enumerate(targets)
+                    ],
+                }
+            }
+        )
+        self.running = False
+        self.job_finished.emit()
 
     def stop(self) -> None:
         self.running = False
@@ -135,6 +180,62 @@ def test_completed_core_stems_shows_one_synchronized_mixer(tmp_path: Path, qt_ap
     assert window.export_all_button.text() == "Exportar todos"
     assert window.player.state().total_frames == 1000
     window.close()
+
+
+def test_instrument_analysis_is_responsive_editable_and_does_not_auto_separate(
+    tmp_path: Path, qt_app
+) -> None:
+    input_path = tmp_path / "Música São João - João & Núbia.wav"
+    input_path.write_bytes(b"fixture")
+    separation_worker = FakeWorker()
+    analysis_worker = FakeAnalysisWorker()
+    window = MainWindow(
+        repo_root=tmp_path,
+        worker=separation_worker,
+        analysis_worker=analysis_worker,
+    )
+    window.set_input_path(input_path)
+    heartbeats: list[int] = []
+    heartbeat = QTimer()
+    heartbeat.setInterval(1)
+    heartbeat.timeout.connect(lambda: heartbeats.append(1))
+    loop = QEventLoop()
+    analysis_worker.job_finished.connect(loop.quit)
+    timeout = QTimer()
+    timeout.setSingleShot(True)
+    timeout.timeout.connect(loop.quit)
+    heartbeat.start()
+    timeout.start(2_000)
+    window.start_instrument_analysis()
+    loop.exec()
+    heartbeat.stop()
+    timeout.stop()
+
+    assert heartbeats
+    assert analysis_worker.last_launch.input_path == input_path.resolve()
+    assert separation_worker.last_job is None
+    assert window.instrument_panel.has_analysis
+    assert not window.analysis_group.isHidden()
+    assert window.analyze_button.text() == "Reanalisar instrumentos"
+    assert len(window.instrument_panel.current_plan().steps) == 1
+    for checkbox in window.instrument_panel.checkboxes.values():
+        checkbox.setChecked(False)
+    window.instrument_panel.checkboxes["strings"].setChecked(True)
+    assert window.instrument_panel.current_plan().steps == ()
+    assert "especializado" in window.instrument_panel.plan_summary.text().lower()
+    for target in ("vocals", "drums", "bass", "guitar", "piano"):
+        window.instrument_panel.checkboxes[target].setChecked(True)
+    assert len(window.instrument_panel.current_plan().steps) == 1
+    window.close()
+
+
+def test_ui_never_describes_detector_scores_as_percent_confidence() -> None:
+    ui_root = Path(__file__).resolve().parents[1] / "src" / "stemlab" / "ui"
+    source = "\n".join(path.read_text(encoding="utf-8") for path in ui_root.glob("*.py"))
+    lowered = source.lower()
+    assert "confidence" not in lowered
+    assert "probability" not in lowered
+    assert "% confidence" not in lowered
 
 
 def test_launcher_uses_only_local_runtime() -> None:
