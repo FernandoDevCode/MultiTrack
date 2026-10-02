@@ -2,17 +2,18 @@
 
 ## Estado atual
 
-Fase 0 e Fase 1 já estão concluídas. O caminho ativo agora é o **Fast Track v0.1**.
+Fase 0, Fase 1, Fast Track v0.1 e a migração para BS-RoFormer SW estão concluídos.
 
-Use somente:
+O caminho ativo é **StemLab v0.2 — Checkpoint 1**, definido em:
 
-`prompts/FAST_TRACK_v01.md`
+- `docs/12_V02_CHECKPOINT1.md`
+- `prompts/V02_CHECKPOINT1.md`
 
-Enquanto o Fast Track estiver ativo, a regra antiga de “um prompt por fase, sem combinar fases” fica suspensa **somente para esse prompt fechado**. O roadmap original continua preservado para convergência depois da v0.1.
+O roadmap original continua como mapa de convergência; não retome fases antigas mecanicamente.
 
 ## Sandbox
 
-Abra o Codex na raiz do projeto. Mantenha `workspace-write`, sem writable roots extras. Rede só quando necessária para dependência/modelo aprovado. Não usar acesso irrestrito.
+Abra o Codex na raiz do projeto. Mantenha `workspace-write`, sem writable roots extras. Rede só quando necessária para a dependência explicitamente aprovada no prompt. Não usar acesso irrestrito.
 
 ## Depois da execução
 
@@ -21,18 +22,12 @@ Exija:
 - arquivos alterados;
 - comandos executados;
 - testes;
-- downloads/origem/hash quando aplicável;
+- dependências/origem quando aplicável;
 - smoke real;
 - limitações;
 - alterações fora do escopo: zero.
 
-Não aceite “funciona” sem evidência.
-
-## Depois do Fast Track
-
-Faça gap analysis contra `docs/05_ROADMAP.md`. Não retome automaticamente pelo próximo número da fase.
-
-Os prompts `02_model_registry.md` a `06_packaging.md` são referência de convergência futura e só devem ser usados quando o gap analysis justificar.
+Não aceite "funciona" sem evidência.
 
 ## Git
 
