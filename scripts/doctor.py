@@ -276,6 +276,23 @@ def check_smoke_model() -> None:
         result("PASS", f"Smoke model artifact verified: {filename} ({size} bytes)")
 
 
+def check_specialist_candidates() -> None:
+    try:
+        from stemlab.separation import verify_all_specialist_candidates
+
+        candidates = verify_all_specialist_candidates(REPO_ROOT / "models")
+    except Exception as exc:
+        fail(f"Specialist candidate verification failed: {exc}")
+        return
+    for candidate in candidates:
+        result(
+            "PASS",
+            "Research-only specialist verified: "
+            f"{candidate.candidate_id}; checkpoint={candidate.checkpoint_sha256}; "
+            f"config={candidate.config_sha256}",
+        )
+
+
 def main() -> int:
     result("INFO", f"StemLab root: {REPO_ROOT}")
     free_bytes = shutil.disk_usage(REPO_ROOT).free
@@ -291,6 +308,7 @@ def main() -> int:
     check_local_tool("ffmpeg")
     check_local_tool("ffprobe")
     check_smoke_model()
+    check_specialist_candidates()
 
     if failures:
         result("FAIL", f"Doctor completed with {len(failures)} blocking issue(s)")

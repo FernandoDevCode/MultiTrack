@@ -1,6 +1,11 @@
 # StemLab v0.2 — Checkpoint 3: Specialist Quality Gate (Guitar + Bass)
 
-**Status:** active research checkpoint
+**Status:** technical PASS; manual quality gate pending
+
+O harness, a allowlist local e os smokes CUDA/offline foram concluídos em
+2026-10-02. Isso não aprova qualidade nem promove especialistas; veja
+`docs/generated/v02-checkpoint3-technical-report.md` e execute o gate humano em
+`bench/README_SPECIALIST_GATE.md`.
 
 **Goal:** stop spending product effort on metadata-only detection and prove, with real audio, whether specialist MSS stages materially improve the two problems already heard by the user: mixed/muddy guitars and weak/contaminated bass.
 

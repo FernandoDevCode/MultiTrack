@@ -10,8 +10,9 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 - Fase 1 (engine headless): **PASS**.
 - Fast Track v0.1: **PASS**.
 - v0.2 Checkpoint 1 — Core + Player: **PASS**, inclusive aceitação manual do usuário.
-- v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **technical PASS / manual quality FAIL**. Em música conhecida pelo usuário, o CLAP não sugeriu guitarra claramente audível e confundiu categorias; ele permanece somente advisory/experimental e não é autoridade de routing.
-- Caminho ativo: **v0.2 Checkpoint 3 — Specialist Quality Gate (Guitar + Bass)**, definido em `docs/14_V02_CHECKPOINT3.md`.
+- v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **infrastructure PASS / manual quality FAIL**. Em música conhecida pelo usuário, o CLAP não sugeriu guitarra claramente audível e confundiu categorias; ele permanece somente advisory/experimental e não é autoridade de routing.
+- v0.2 Checkpoint 3 — Specialist Quality Gate (Guitar + Bass): **technical PASS / manual quality gate pending**. O harness G0/G1/G2/B0/B1 e os dois candidatos CUDA/offline passaram; ambos permanecem research-only, sem vencedor e sem integração na UI até o gate humano de três músicas.
+- Caminho ativo: concluir somente o **gate humano do Checkpoint 3**, definido em `docs/14_V02_CHECKPOINT3.md` e `bench/README_SPECIALIST_GATE.md`. Não avançar ao checkpoint seguinte antes dessa decisão.
 - O roadmap original de 7 fases em `docs/05_ROADMAP.md` continua válido como mapa de convergência/hardening. Ele não deve ser executado mecanicamente fase a fase enquanto o Fast Track estiver ativo.
 - Depois da v0.1 utilizável, faça um **gap analysis** contra as fases originais e implemente somente o que ainda trouxer valor.
 
