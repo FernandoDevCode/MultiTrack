@@ -113,3 +113,13 @@ Decisão: manter o CLAP somente como recurso experimental/advisory. Resultado de
 Evidência: teste manual do usuário após o technical PASS do Checkpoint 2; `docs/generated/v02-checkpoint2-report.md` já registrava que similaridade CLAP não é probabilidade nem prova de presença.
 
 Consequências: priorizar qualidade de áudio real. O próximo gate é benchmark de especialistas Guitar Lead/Rhythm e Bass; a infraestrutura de análise/planning permanece reutilizável, mas o adapter CLAP pode ser substituído no futuro.
+
+## D-014 — CPU explícita e seleção de saídas sem promessa de aceleração
+
+**Status:** accepted for implementation (Checkpoint 4); not yet implemented.
+
+Contexto: o usuário quer separar em PCs domésticos sem GPU dedicada e escolher só os instrumentos/vozes desejados. A implementação atual exige CUDA e o BS-RoFormer SW computa seis saídas no mesmo passe.
+
+Decisão: suportar AUTO, CUDA obrigatório e CPU obrigatório no worker, com dispositivo efetivo registrado e sem fallback silencioso em erro de CUDA. O Core Stems permitirá escolher um subconjunto dos seis stems realmente disponíveis. Todos seguem sendo calculados no Core uma única vez; manter somente as saídas solicitadas para player/export/disco. Não prometer redução da inferência. A seleção de stems é independente das sugestões experimentais CLAP.
+
+Consequências: perfis de diagnóstico CPU/GPU, testes de runtime CPU/FP32, regressão CUDA, limpeza segura de arquivos não selecionados e manifest honesto. Especialistas research-only não entram automaticamente no planner de produção.
