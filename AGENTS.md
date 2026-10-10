@@ -18,7 +18,7 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 
 ## Fontes de verdade
 
-- Para o caminho ativo imediato: `docs/14_V02_CHECKPOINT3.md`.
+- Para o caminho ativo imediato: `docs/15_V02_CHECKPOINT4_CPU_TARGETS.md`. O Checkpoint 3 continua pendente do gate humano, sem promoção automática dos especialistas.
 - `docs/13_V02_CHECKPOINT2.md`, `docs/12_V02_CHECKPOINT1.md` e `docs/11_FAST_TRACK.md` permanecem históricos.
 - Para produto e escopo final: `docs/00_PRODUCT.md`.
 - Para limites arquiteturais: `docs/01_SYSTEM_DESIGN.md`.
