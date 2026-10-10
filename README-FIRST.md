@@ -13,7 +13,8 @@ StemLab é um aplicativo Windows local para separação de fontes musicais com m
 - **v0.2 Checkpoint 1 — PASS:** Core Stems, player multistem sincronizado, A/B, export byte-identical, extração lossless de áudio de vídeo e seam mínima de pipelines.
 - **v0.2 Checkpoint 1 — aceitação manual PASS:** player/export/extração e paths Unicode validados pelo usuário.
 - **v0.2 Checkpoint 2 — technical PASS / manual quality FAIL:** a infraestrutura de análise funciona, mas o CLAP errou instrumentação relevante em teste conhecido (incluindo guitarra claramente audível). Permanece advisory/experimental e não decide routing automaticamente.
-- **Agora:** v0.2 Checkpoint 3 — benchmark local de especialistas para Guitar Lead/Rhythm e Bass, sem promoção automática ao produto.
+- **v0.2 Checkpoint 3 — technical PASS:** benchmark local G0/G1/G2/B0/B1 dos especialistas; aprovação musical ainda pendente, sem integração na UI de produção.
+- **Próximo, ainda NÃO implementado:** Checkpoint 4 — modo CPU para PC sem NVIDIA e escolha dos stems a salvar/ouvir/exportar. Seleção de subconjunto Core não promete ganho de inferência, porque BS-RoFormer SW calcula as seis fontes.
 
 ## Abrir o aplicativo
 
@@ -63,7 +64,7 @@ Não estamos descartando o plano original. Estamos mudando a ordem para começar
 6. `docs/04_TEST_AND_EVAL.md`
 7. `docs/generated/phase1-report.md`
 
-Para a tarefa atual use `docs/14_V02_CHECKPOINT3.md` e `prompts/V02_CHECKPOINT3.md`. Checkpoints anteriores permanecem históricos.
+Para a tarefa atual use `docs/15_V02_CHECKPOINT4_CPU_TARGETS.md` e `prompts/V02_CHECKPOINT4_CPU_TARGETS.md`. Checkpoint 3 permanece como gate de qualidade separado, pendente de avaliação humana.
 
 ## Roadmap original
 
