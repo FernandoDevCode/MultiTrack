@@ -2,36 +2,28 @@
 
 ## Estado atual
 
-Fase 0, Fase 1, Fast Track v0.1, migração BS-RoFormer SW e v0.2 Checkpoint 1 estão concluídos.
+Fases 0/1 e Fast Track v0.1 PASS; BS-RoFormer SW ativo. Checkpoint 1 PASS humano. Checkpoint 2 técnico PASS mas detector CLAP falhou quality gate manual, permanece advisory/experimental. Checkpoint 3 técnico PASS, especialistas Lead/Rhythm e Bass permanecem research-only até avaliação musical humana.
 
-O v0.2 Checkpoint 2 teve **technical PASS**, mas o detector CLAP falhou no quality gate manual e permanece somente advisory/experimental.
+**Caminho ativo de implementação:** Checkpoint 4 — CPU + seleção de stems.
 
-O caminho ativo é **StemLab v0.2 — Checkpoint 3: Specialist Quality Gate (Guitar + Bass)**:
-
-- `docs/14_V02_CHECKPOINT3.md`
-- `prompts/V02_CHECKPOINT3.md`
+- `docs/15_V02_CHECKPOINT4_CPU_TARGETS.md`
+- `prompts/V02_CHECKPOINT4_CPU_TARGETS.md`
 
 ## Sandbox
 
-Abra o Codex na raiz do projeto. Mantenha `workspace-write`, sem writable roots extras. Os candidatos especialistas devem ser instalados/verificados antes pelo script pinado do projeto. Inferência deve funcionar offline. Não usar acesso irrestrito.
+Use a pasta raiz do projeto Windows, `workspace-write`, sem writable roots externos. Não atualizar runtime/driver/sistema global, modelos, Torch/CUDA ou dependências. Sem rede necessária.
 
-## Depois da execução
+## Gates
 
-Exija:
+- testes unitários e integrações relevantes;
+- GPU regressions Core Stems;
+- CPU smoke opt-in verdadeiro, resultados explícitos;
+- `doctor --profile cpu` e doctor GPU;
+- manifests/output/player/export corretos para seleção de uma/várias stems;
+- documentação honesta de velocidade, RAM, limitações e validação manual.
 
-- arquivos alterados;
-- comandos executados;
-- hashes de checkpoint e config;
-- testes;
-- smoke CUDA real de cada candidato;
-- prova offline;
-- runtime/VRAM por estágio;
-- outputs e manifest do harness;
-- limitações;
-- alterações fora do escopo: zero.
-
-PASS técnico não significa aprovação de qualidade. A promoção depende do gate humano G0/G1/G2/B0/B1 em músicas reais.
+Não confundir "somente alguns arquivos finais" com inferência mais barata do modelo multistem.
 
 ## Git
 
-Commit local pode fazer parte da tarefa útil. Push, tag e release exigem pedido explícito.
+Não fazer commit, push, tag ou release sem pedido explícito.
