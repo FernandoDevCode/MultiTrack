@@ -53,6 +53,8 @@ class MainWindow(QMainWindow):
         self.setStyleSheet(APP_STYLESHEET)
         self.setWindowIcon(app_icon(self.repo_root))
         self._build_ui()
+        if (self.repo_root / ".tmp/cpu-install-receipt.json").is_file():
+            self.device_combo.setCurrentIndex(self.device_combo.findData(DevicePolicy.CPU_REQUIRED))
         self._connect_workers()
         self._set_idle_state()
         self._reset_progress()

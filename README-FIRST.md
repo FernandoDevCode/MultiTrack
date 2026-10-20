@@ -3,8 +3,8 @@
 > **Nome do aplicativo:** `MultiTrack`.
 
 Para usar em outro Windows, consulte [o guia para colaboradores](docs/16_COLLABORATOR_SETUP.md).
-O clone do GitHub contém código e documentação; runtime, FFmpeg e modelos são
-preparados separadamente. Ainda não há instalador publicado.
+Para Windows sem GPU, `INSTALAR-CPU.bat` prepara runtime, FFmpeg e modelo
+automaticamente dentro da pasta local. Veja [o guia CPU](docs/17_CPU_INSTALLER.md).
 
 MultiTrack é um aplicativo Windows local para separação de fontes musicais com modelos modernos de Music Source Separation (MSS). O objetivo final continua sendo alta qualidade, funcionamento offline após setup, stems comuns e uma área experimental para guitarra lead/rhythm quando houver evidência suficiente.
 

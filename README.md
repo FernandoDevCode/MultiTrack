@@ -6,10 +6,25 @@ Processamento local, com CUDA ou CPU, sem upload de áudio.
 
 ## Usar em outro computador
 
-Veja o [guia para colaboradores](docs/16_COLLABORATOR_SETUP.md).
-**Baixar o código pelo GitHub não instala o aplicativo:** Python, dependências,
-FFmpeg e o modelo ficam fora do Git e precisam ser preparados no segundo PC.
-Ainda não há instalador Windows publicado.
+O pacote CPU está preparado; sua publicação em Releases está pendente.
+
+Abra **[Releases / downloads](https://github.com/FernandoDevCode/MultiTrack/releases)**
+e baixe **`MultiTrack-CPU-setup.zip`** nos Assets da versão CPU.
+Extraia **todo** o ZIP e dê duplo clique em **`INSTALAR-CPU.bat`**.
+Não é necessário clonar o projeto nem usar comandos. Como o repositório é
+privado, o download pelo GitHub exige login e acesso ao projeto.
+
+Ele prepara Python, bibliotecas CPU, FFmpeg e modelo dentro da própria pasta,
+sem administrador nem instalações globais. O setup precisa de internet;
+os usos seguintes funcionam offline. Veja o [guia do instalador CPU](docs/17_CPU_INSTALLER.md).
+O código também contém o BAT, para quem baixar o ZIP do repositório.
+
+O pacote inclui a interface atual **MultiTrack**, o ícone **Mt**, player,
+exportação e progresso com estimativa de tempo. O instalador cria o atalho
+`MultiTrack.lnk` dentro da pasta extraída. Depois, basta abrir esse atalho.
+Em CPU, a análise experimental CLAP fica desativada. É preciso Windows 10/11
+x64 Intel/AMD; reserve 10 GiB livres e internet para cerca de 1,7 GB no
+primeiro setup. O processamento em CPU pode demorar.
 
 Depois de preparar o ambiente, abra `START-MULTITRACK.bat`, escolha uma música,
 o dispositivo e as faixas desejadas. A interface mostra porcentagem, etapa,

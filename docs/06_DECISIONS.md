@@ -278,3 +278,34 @@ fica confinado ao adapter e ao job com um modelo por processo. Não houve troca
 de pesos, DSP, routing, modelo/default ou promoção de especialistas.
 
 Evidência upstream: `docs/research/audio-separator-047-progress.md`.
+
+## D-023 — Setup autocontido para Windows sem GPU
+
+**Status:** accepted, solicitado pelo usuário.
+
+ZIP pequeno com `INSTALAR-CPU.bat`: PowerShell do Windows baixa Python 3.12.10
+local verificado; o Python baixa/verifica wheels CPU e FFmpeg pinados antes de
+instalar em `.venv` e `tools/`. Core usa o instalador e modelo já aprovados,
+com download separado e verificação de checkpoint/config. Não redistribuir pesos.
+
+Torch 2.8.0+cpu, torchvision 0.23.0+cpu e ONNX Runtime CPU 1.26.0; sem CUDA,
+driver, Python global, compilador ou PATH permanente. Provedores ONNX ficam
+em extras `cpu`/`gpu`, preservando a matriz GPU. Doctor CPU aceita Torch CPU;
+o gate GPU continua exigindo cu128. Manifest fixa URL/tamanho/SHA-256 de todos
+os wheels; pip instala do cache verificado com hashes e sem source builds.
+
+Não converter `.venv` preexistente. Repetição somente para setup CPU identificado.
+Receipt de sucesso após pip check, doctor CPU e importação da UI; a receipt define
+CPU como seleção inicial e mantém CLAP desabilitado nesse modo. Nenhuma mudança
+de modelo, parâmetros de inferência, qualidade declarada ou routing especialista.
+
+Builder por allowlist exclui ambientes, pesos, caches, músicas, `.git` e outputs.
+Alvo Windows 10/11 x64; não prometer compatibilidade com toda CPU antiga ou ARM.
+Guia: `docs/17_CPU_INSTALLER.md`.
+
+O teste offline de instalação nova revelou que `Separator.download_model_files`
+consulta catálogos remotos ausentes do cache. Para o Core, o adapter passa a
+resolver diretamente o par checkpoint/YAML allowlisted por nomes e hashes,
+mantendo `Separator.load_model`, a inferência e a validação do serviço existentes.
+Não baixar catálogos mutáveis para contornar a falha. Especialistas permanecem
+research-only; não há novo registry nem abertura de checkpoint arbitrário.

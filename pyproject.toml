@@ -4,16 +4,19 @@ version = "0.1.0"
 description = "Local-first Windows music source separation application"
 requires-python = ">=3.12,<3.13"
 dependencies = [
-  "audio-separator[gpu]==0.47.0",
+  "audio-separator==0.47.0",
   # audio-separator imports this directly but 0.47.0 does not declare it.
   "audioread==3.1.0",
-  # 1.27+ defaults to CUDA 13 on PyPI; 1.26 is the CUDA 12.8 build.
-  "onnxruntime-gpu==1.26.0",
   "PySide6-Essentials==6.9.2",
   "sounddevice==0.5.6",
   "torch==2.8.0",
   "transformers==5.18.0",
 ]
+
+[project.optional-dependencies]
+cpu = ["audio-separator[cpu]==0.47.0", "onnxruntime==1.26.0"]
+# ORT GPU 1.27+ defaults to CUDA 13; preserve the validated CUDA 12.8 build.
+gpu = ["audio-separator[gpu]==0.47.0", "onnxruntime-gpu==1.26.0"]
 
 [dependency-groups]
 dev = [

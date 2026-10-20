@@ -22,6 +22,7 @@ from stemlab.domain import (
     BackendSeparationError,
     DevicePolicy,
     DeviceUnavailableError,
+    ModelSpec,
     OutputFormat,
     SeparationRequest,
 )
@@ -110,7 +111,10 @@ class AudioSeparatorBackend:
         try:
             with self._project_environment():
                 specialist = resolve_verified_specialist(request.model, self.models_dir)
-                separator = self._separator_for(specialist, separator_kwargs)
+                if request.model.model_id == "bs-roformer-sw-jarredou":
+                    separator = _VerifiedLocalCoreSeparator(model=request.model, **separator_kwargs)
+                else:
+                    separator = self._separator_for(specialist, separator_kwargs)
                 selected_device = separator.torch_device.type
                 if selected_device != target_device:
                     raise DeviceUnavailableError(
@@ -346,6 +350,33 @@ class AudioSeparatorBackend:
             else:
                 os.environ["AUDIO_SEPARATOR_MODEL_DIR"] = previous_model_dir
             os.environ["PATH"] = previous_path
+
+
+class _VerifiedLocalCoreSeparator(Separator):
+    """Resolve the approved Core pair without upstream's online model catalogs."""
+
+    def __init__(self, *, model: ModelSpec, **kwargs) -> None:
+        if (
+            model.model_id != "bs-roformer-sw-jarredou"
+            or model.checkpoint_path.name != "BS-Roformer-SW.ckpt"
+            or model.expected_sha256 != "24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e"
+            or tuple(path.name for path in model.config_paths) != ("BS-Roformer-SW.yaml",)
+            or model.expected_config_sha256 != ("b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",)
+        ):
+            raise BackendSeparationError("Core model does not match the approved local artifacts.")
+        self._stemlab_core_model = model
+        super().__init__(**kwargs)
+
+    def download_model_files(self, model_filename):
+        model = self._stemlab_core_model
+        if model_filename != model.checkpoint_path.name:
+            raise ValueError("Core backend identifier is not allowlisted")
+        self.model_is_uvr_vip = False
+        self.model_friendly_name = "BS-RoFormer SW by jarredou"
+        return (
+            model_filename, "MDXC", self.model_friendly_name,
+            str(model.checkpoint_path.resolve()), str(model.config_paths[0].resolve()),
+        )
 
 
 class _VerifiedLocalSpecialistSeparator(Separator):

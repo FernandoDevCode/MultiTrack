@@ -1,9 +1,17 @@
 # Usar o MultiTrack em um segundo Windows
 
+**Para Windows sem GPU, use o [instalador automático CPU](17_CPU_INSTALLER.md):**
+extraia o ZIP e execute `INSTALAR-CPU.bat`. Não é necessário copiar o runtime
+do proprietário. O procedimento abaixo é referência de preparação manual
+do ambiente anterior, especialmente para desenvolvimento/GPU.
+
 ## Acesso ao código
 
-O repositório `FernandoDevCode/MultiTrack` é privado. O proprietário precisa convidar
-o usuário GitHub do colaborador; o convidado deve aceitar antes de clonar.
+O repositório é [FernandoDevCode/MultiTrack](https://github.com/FernandoDevCode/MultiTrack).
+Os pacotes publicados ficam em [Releases](https://github.com/FernandoDevCode/MultiTrack/releases).
+Para manter o código
+privado, o proprietário precisa convidar o colaborador, que aceita antes de
+clonar. O ZIP CPU pode ser compartilhado diretamente, sem GitHub nem Git.
 
 ```powershell
 git clone https://github.com/FernandoDevCode/MultiTrack.git
@@ -17,7 +25,7 @@ O nome público do app é MultiTrack; o pacote Python continua se chamando
 ## O que precisa existir além do código
 
 O launcher atual usa um ambiente local validado em Windows x64. O clone
-sozinho não contém os itens abaixo, nem existe um instalador publicado.
+sozinho não contém os itens abaixo; o novo BAT CPU os prepara automaticamente.
 
 | Pasta no clone | Conteúdo necessário |
 |---|---|
@@ -44,8 +52,8 @@ Quem reconstruir o ambiente em vez de receber o runtime deve manter a matriz
 pinada em `requirements-gpu.txt`, `requirements-lock.txt` e `pyproject.toml`,
 com Python local completo em `tools/python312/`. O launcher exige essa
 estrutura. Não substituir por versões mais novas nem por Python embeddable
-sem validar novamente. O projeto ainda não tem bootstrap automático de clone
-limpo; a reconstrução deve ser acompanhada por alguém com experiência Python.
+sem validar novamente. Para GPU, a reconstrução deve ser acompanhada por
+alguém com experiência Python; para CPU, use `INSTALAR-CPU.bat`.
 
 ## Preparar o modelo Core
 

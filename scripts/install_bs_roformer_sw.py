@@ -34,6 +34,7 @@ CONFIG_NAME = "BS-Roformer-SW.yaml"
 CONFIG_URL = f"{BASE_URL}/{CONFIG_NAME}"
 # Hugging Face serves this small file with this Git blob object id.
 CONFIG_GIT_BLOB_SHA1 = "49760ce0b48d341ee70760803dd59f4cb0982728"
+CONFIG_SHA256 = "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a"
 
 EXPECTED_STEMS_TEXT = (
     "instruments: ['bass', 'drums', 'other', 'vocals', 'guitar', 'piano']"
@@ -151,6 +152,8 @@ def verify_config(path: Path) -> dict[str, object]:
     if not path.is_file():
         raise RuntimeError(f"Config missing: {path}")
 
+    if sha256_file(path) != CONFIG_SHA256:
+        raise RuntimeError("Core config SHA-256 mismatch")
     blob_sha1 = git_blob_sha1(path)
     if blob_sha1 != CONFIG_GIT_BLOB_SHA1:
         raise RuntimeError(

@@ -1,0 +1,31 @@
+MultiTrack - Windows 10/11 x64, sem placa de video
+
+1. Extraia TODO o ZIP para uma pasta sua (por exemplo, C:\MultiTrack).
+   Nao execute de dentro do ZIP nem de Program Files.
+2. De duplo clique em INSTALAR-CPU.bat.
+3. Aguarde os downloads e a verificacao. Precisa de internet na instalacao.
+   Reserve 10 GiB livres para ter margem. O download total passa de 1,5 GB.
+4. O aplicativo abre ao terminar. Nas proximas vezes use MultiTrack.lnk
+   ou START-MULTITRACK.bat. Nao precisa instalar novamente.
+
+Nao exige Python, Git, CUDA, compilador ou permissao de administrador.
+Nao instala drivers nem muda o PATH do Windows.
+Python, bibliotecas, FFmpeg e modelo ficam dentro desta pasta.
+
+O pacote usa CPU em FP32. Musicas longas podem demorar bastante.
+8 GB de RAM podem ser limitantes; 16 GB ou mais sao recomendados.
+Isso nao garante suporte a processadores muito antigos.
+
+O arquivo original nao e alterado. Nenhum audio e enviado pela internet.
+Depois do setup, separar e ouvir funciona offline.
+O tempo restante exibido e uma estimativa da IA; gravacao/validacao sao adicionais.
+
+Se falhar, execute INSTALAR-CPU.bat novamente. Downloads ja verificados sao
+reutilizados. Diagnosticos: .tmp\install-cpu-bootstrap.log e .tmp\install-cpu.log.
+Nao desative antivirus nem baixe checkpoints aleatorios para tentar corrigir.
+
+Para remover: feche o app e remova a pasta quando ja tiver salvo seus outputs.
+Para atualizar: use uma nova pasta; nao misture este ambiente CPU com um GPU.
+
+Este pacote baixa o modelo aprovado de sua origem; nao redistribui pesos.
+Veja docs\17_CPU_INSTALLER.md para detalhes tecnicos e licencas.

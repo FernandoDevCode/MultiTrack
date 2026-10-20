@@ -153,6 +153,17 @@ def test_ui_basic_states_and_success(tmp_path: Path, qt_app, monkeypatch) -> Non
     window.close()
 
 
+def test_cpu_install_receipt_selects_cpu_and_disables_optional_analysis(tmp_path, qt_app):
+    (tmp_path / ".tmp").mkdir()
+    (tmp_path / ".tmp/cpu-install-receipt.json").write_text('{"profile":"cpu"}')
+    worker = FakeWorker()
+    window = MainWindow(repo_root=tmp_path, worker=worker)
+    assert DevicePolicy(window.device_combo.currentData()) is DevicePolicy.CPU_REQUIRED
+    assert not window.analyze_button.isEnabled()
+    assert "CPU selecionada" in window.device_hint.text()
+    window.close()
+
+
 def test_progress_eta_failure_and_retry(tmp_path: Path, qt_app, monkeypatch) -> None:
     now = [100.0]
     monkeypatch.setattr("stemlab.ui.main_window.time.perf_counter", lambda: now[0])

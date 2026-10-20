@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import sys
+from types import SimpleNamespace
 
 
 def _doctor_module():
@@ -40,3 +42,21 @@ def test_cpu_profile_skips_nvidia_clap_and_specialists(monkeypatch) -> None:
 def test_default_doctor_profile_remains_gpu() -> None:
     doctor = _doctor_module()
     assert doctor.build_parser().parse_args([]).profile == "gpu"
+
+
+def test_cpu_torch_build_is_accepted_only_by_cpu_profile(monkeypatch):
+    doctor = _doctor_module()
+    tensor = SimpleNamespace(
+        device=SimpleNamespace(type="cpu"), dtype="fp32",
+        square=lambda: SimpleNamespace(mean=lambda: SimpleNamespace(item=lambda: 1.0)),
+    )
+    fake = SimpleNamespace(
+        __version__="2.8.0+cpu", version=SimpleNamespace(cuda=None),
+        float32="fp32", arange=lambda *a, **kw: tensor,
+        cuda=SimpleNamespace(is_available=lambda: False),
+    )
+    monkeypatch.setitem(sys.modules, "torch", fake)
+    doctor.check_torch("cpu")
+    assert not doctor.failures
+    doctor.check_torch("gpu")
+    assert any("version mismatch" in failure for failure in doctor.failures)

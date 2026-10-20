@@ -127,10 +127,11 @@ def check_torch(profile: str) -> None:
         fail(f"Unable to import torch: {exc}")
         return
 
-    if torch.__version__ == EXPECTED_TORCH:
+    accepted = {EXPECTED_TORCH, "2.8.0+cpu"} if profile == "cpu" else {EXPECTED_TORCH}
+    if torch.__version__ in accepted:
         result("PASS", f"PyTorch {torch.__version__}")
     else:
-        fail(f"PyTorch version mismatch: expected {EXPECTED_TORCH}, got {torch.__version__}")
+        fail(f"PyTorch version mismatch: expected {sorted(accepted)}, got {torch.__version__}")
 
     result("INFO", f"PyTorch compiled CUDA runtime: {torch.version.cuda}")
     if profile == "cpu":
