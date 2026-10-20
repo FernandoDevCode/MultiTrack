@@ -8,6 +8,17 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 RESULT_PATH = REPO_ROOT / ".tmp" / "phase0-smoke" / "latest-result.json"
 
 
+def _relocated_evidence_path(raw_path: str, run_dir: str) -> Path:
+    recorded = Path(raw_path)
+    if recorded.is_file():
+        return recorded
+    local_run = REPO_ROOT / ".tmp" / "phase0-smoke" / Path(run_dir).name
+    candidate = local_run / recorded.name
+    if candidate.is_file():
+        return candidate
+    return local_run / "outputs" / recorded.name
+
+
 def test_latest_model_smoke_evidence() -> None:
     result = json.loads(RESULT_PATH.read_text(encoding="utf-8"))
 
@@ -23,7 +34,7 @@ def test_latest_model_smoke_evidence() -> None:
 
     input_duration = result["input"]["duration_seconds"]
     for output in result["outputs"]:
-        assert Path(output["path"]).is_file()
+        assert _relocated_evidence_path(output["path"], result["run_dir"]).is_file()
         assert output["bytes"] > 44
         assert output["sample_rate"] == 44_100
         assert output["channels"] == 2

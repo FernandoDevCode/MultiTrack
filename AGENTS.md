@@ -12,13 +12,14 @@ Construir um aplicativo Windows local para separação de fontes musicais com qu
 - v0.2 Checkpoint 1 — Core + Player: **PASS**, inclusive aceitação manual do usuário.
 - v0.2 Checkpoint 2 — Instrument Analysis + Adaptive Planning: **infrastructure PASS / manual quality FAIL**. Em música conhecida pelo usuário, o CLAP não sugeriu guitarra claramente audível e confundiu categorias; ele permanece somente advisory/experimental e não é autoridade de routing.
 - v0.2 Checkpoint 3 — Specialist Quality Gate (Guitar + Bass): **technical PASS / manual quality gate pending**. O harness G0/G1/G2/B0/B1 e os dois candidatos CUDA/offline passaram; ambos permanecem research-only, sem vencedor e sem integração na UI até o gate humano de três músicas.
-- Caminho ativo: concluir somente o **gate humano do Checkpoint 3**, definido em `docs/14_V02_CHECKPOINT3.md` e `bench/README_SPECIALIST_GATE.md`. Não avançar ao checkpoint seguinte antes dessa decisão.
+- v0.2 Checkpoint 4 — CPU + faixas desejadas: **technical PASS / manual acceptance pending**. A UI e o headless suportam `auto/cuda/cpu`; CPU roda FP32 sem fallback oculto; Core calcula seis fontes uma vez e entrega somente o subconjunto solicitado. O relatório está em `docs/generated/v02-checkpoint4-report.md`.
+- Caminho ativo: concluir a aceitação manual do **Checkpoint 4** e, separadamente, o gate humano de qualidade do Checkpoint 3. Não avançar além do Checkpoint 4; especialistas continuam research-only.
 - O roadmap original de 7 fases em `docs/05_ROADMAP.md` continua válido como mapa de convergência/hardening. Ele não deve ser executado mecanicamente fase a fase enquanto o Fast Track estiver ativo.
 - Depois da v0.1 utilizável, faça um **gap analysis** contra as fases originais e implemente somente o que ainda trouxer valor.
 
 ## Fontes de verdade
 
-- Para o caminho ativo imediato: `docs/15_V02_CHECKPOINT4_CPU_TARGETS.md`. O Checkpoint 3 continua pendente do gate humano, sem promoção automática dos especialistas.
+- Para o estado implementado do Checkpoint 4: `docs/15_V02_CHECKPOINT4_CPU_TARGETS.md` e `docs/generated/v02-checkpoint4-report.md`. O Checkpoint 3 continua pendente do gate humano, sem promoção automática dos especialistas.
 - `docs/13_V02_CHECKPOINT2.md`, `docs/12_V02_CHECKPOINT1.md` e `docs/11_FAST_TRACK.md` permanecem históricos.
 - Para produto e escopo final: `docs/00_PRODUCT.md`.
 - Para limites arquiteturais: `docs/01_SYSTEM_DESIGN.md`.

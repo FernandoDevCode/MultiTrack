@@ -22,4 +22,16 @@ __pycache__/
 # Local editor/OS noise
 .DS_Store
 Thumbs.db
+StemLab.lnk
+MultiTrack.lnk
+
+# Local credentials (examples may be documented without real secrets)
+.env
+.env.*
+!.env.example
+!.env.sample
+.aws/
+.ssh/
+*.pem
+*.key
 

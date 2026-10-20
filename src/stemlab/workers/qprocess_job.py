@@ -14,6 +14,7 @@ _EVENT_PREFIX_BYTES = b"STEMLAB_EVENT "
 class QProcessJob(QObject):
     job_started = Signal()
     status_changed = Signal(str)
+    progress_changed = Signal(dict)
     completed = Signal(dict)
     failed = Signal(str)
     job_finished = Signal()
@@ -46,14 +47,14 @@ class QProcessJob(QObject):
         self._stdout_buffer = b""
         self._stderr_tail = ""
         self._terminal_event_received = False
-        self.process.setProcessEnvironment(self._project_environment())
+        self.process.setProcessEnvironment(self._project_environment(job))
         self.process.start(program, arguments)
 
     def stop(self) -> None:
         if self.running:
             self.process.terminate()
 
-    def _project_environment(self) -> QProcessEnvironment:
+    def _project_environment(self, job: JobLaunch | None = None) -> QProcessEnvironment:
         environment = QProcessEnvironment.systemEnvironment()
         local_paths = {
             "TEMP": self.repo_root / ".tmp",
@@ -72,6 +73,8 @@ class QProcessJob(QObject):
         environment.insert("PYTHONIOENCODING", "utf-8:strict")
         environment.insert("HF_HUB_OFFLINE", "1")
         environment.insert("TRANSFORMERS_OFFLINE", "1")
+        if job is not None and job.device_policy.value == "cpu":
+            environment.insert("CUDA_VISIBLE_DEVICES", "-1")
         path_value = environment.value("PATH")
         environment.insert(
             "PATH",
@@ -121,12 +124,20 @@ class QProcessJob(QObject):
         event_type = event["type"]
         if event_type == "status":
             self.status_changed.emit(event["message"])
+        elif event_type == "progress":
+            self.progress_changed.emit(event["payload"])
         elif event_type == "completed":
             self._terminal_event_received = True
             self.completed.emit(event["payload"])
         elif event_type == "failed":
             self._terminal_event_received = True
-            self.failed.emit(event["message"])
+            payload = event["payload"]
+            error = (payload.get("result") or {}).get("error") or {}
+            detail = (error.get("details") or {}).get("reason") or payload.get("reason")
+            message = event["message"]
+            if isinstance(detail, str) and detail.strip():
+                message += f" Detalhe: {detail.strip()}"
+            self.failed.emit(message)
 
     def _read_stderr(self) -> None:
         chunk = bytes(self.process.readAllStandardError()).decode("utf-8", errors="replace")

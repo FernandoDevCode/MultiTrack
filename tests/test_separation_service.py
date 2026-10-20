@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
+import subprocess
 
 import numpy as np
 import pytest
@@ -11,10 +13,12 @@ from stemlab.app import SeparationService
 from stemlab.audio import sha256_file
 from stemlab.domain import (
     BackendSeparationError,
+    CORE_STEM_ROLES,
     DevicePolicy,
     DeviceUnavailableError,
     ModelSpec,
     SeparationRequest,
+    StemArtifact,
 )
 from stemlab.separation import BackendResult, BackendStem
 
@@ -79,10 +83,13 @@ def test_valid_separation_uses_injected_backend_and_writes_manifest(tmp_path: Pa
     request, input_path = _fixture(tmp_path)
     input_hash = sha256_file(input_path)
     backend = FakeBackend()
+    progress = []
 
-    result = SeparationService(backend).separate(request)
+    result = SeparationService(backend, on_progress=progress.append).separate(request)
 
     assert result.success
+    assert [event.phase for event in progress] == ["preparing", "validating"]
+    assert all(event.percent < 100 for event in progress)
     assert backend.calls == 1
     assert sha256_file(input_path) == input_hash
     assert result.backend == "fake/1"
@@ -90,11 +97,78 @@ def test_valid_separation_uses_injected_backend_and_writes_manifest(tmp_path: Pa
     assert result.stems[0].role == "vocals"
     assert result.manifest_path and result.manifest_path.is_file()
     manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
-    assert manifest["schema_version"] == 1
+    assert manifest["schema_version"] == 2
     assert manifest["success"] is True
     assert manifest["input"]["sha256"] == input_hash
     assert manifest["model"]["model_id"] == "fake-test-model"
     assert manifest["stems"][0]["sha256"] == result.stems[0].sha256
+    assert manifest["requested_roles"] == ["vocals"]
+    assert manifest["inferred_roles"] == ["vocals"]
+    assert manifest["produced_roles"] == ["vocals"]
+
+
+def test_mp3_input_is_decoded_validated_and_never_modified(tmp_path: Path) -> None:
+    request, wav_input = _fixture(tmp_path)
+    repo_root = Path(__file__).resolve().parents[1]
+    ffmpeg = repo_root / "tools" / "ffmpeg" / "bin" / "ffmpeg.exe"
+    mp3_input = tmp_path / "música de entrada.mp3"
+    subprocess.run(
+        [
+            str(ffmpeg),
+            "-nostdin",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-n",
+            "-i",
+            str(wav_input),
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "192k",
+            str(mp3_input),
+        ],
+        check=True,
+    )
+    input_hash = sha256_file(mp3_input)
+    request = replace(
+        request,
+        input_path=mp3_input,
+        output_dir=tmp_path / "mp3-output",
+    )
+
+    result = SeparationService(FakeBackend()).separate(request)
+
+    assert result.success, result.error
+    assert result.input and result.input.format == "MP3"
+    assert result.input.sample_rate == 44_100
+    assert result.input.channels == 2
+    assert result.input.duration_seconds > 0
+    assert sha256_file(mp3_input) == input_hash
+
+
+def test_unsupported_input_extension_is_rejected_before_backend(
+    tmp_path: Path,
+) -> None:
+    request, _ = _fixture(tmp_path)
+    unsupported = tmp_path / "input.txt"
+    unsupported.write_bytes(b"not audio")
+    request = replace(request, input_path=unsupported)
+    backend = FakeBackend()
+
+    result = SeparationService(backend).separate(request)
+
+    assert not result.success
+    assert result.error and result.error.code == "input_validation"
+    assert result.error.details["supported_extensions"] == [
+        ".aac",
+        ".flac",
+        ".m4a",
+        ".mp3",
+        ".ogg",
+        ".wav",
+    ]
+    assert backend.calls == 0
 
 
 def test_missing_input_is_structured_and_backend_is_not_called(tmp_path: Path) -> None:
@@ -164,6 +238,7 @@ def test_backend_output_outside_requested_directory_is_rejected(tmp_path: Path) 
 
     assert not result.success
     assert result.error and result.error.code == "output_validation"
+    assert outside.is_file()
 
 
 class InvalidStemBackend(FakeBackend):
@@ -251,3 +326,101 @@ def test_unexpected_stem_set_is_rejected(tmp_path: Path) -> None:
     assert not result.success
     assert result.error and result.error.code == "output_validation"
     assert result.error.details["actual_roles"] == ["vocals"]
+
+
+class SixStemBackend(FakeBackend):
+    def separate(self, request, input_metadata):
+        self.calls += 1
+        audio, rate = sf.read(request.input_path, dtype="float32", always_2d=True)
+        stems = []
+        for index, role in enumerate(CORE_STEM_ROLES, start=1):
+            output = request.output_dir / f"fixture_({role.title()})_fake.wav"
+            output.parent.mkdir(parents=True, exist_ok=True)
+            sf.write(output, audio * (index / 10), rate, subtype="FLOAT")
+            stems.append(BackendStem(role=role, path=output))
+        return BackendResult(
+            backend_id="fake/six",
+            effective_device="cpu",
+            effective_precision="fp32",
+            model_load_seconds=0.01,
+            inference_seconds=0.02,
+            total_seconds=0.03,
+            stems=tuple(stems),
+        )
+
+
+@pytest.mark.parametrize(
+    "requested",
+    [CORE_STEM_ROLES, ("vocals",), ("bass", "guitar"), ("other",)],
+)
+def test_core_runs_once_validates_six_and_retains_only_requested(
+    tmp_path: Path, requested: tuple[str, ...]
+) -> None:
+    request, input_path = _fixture(tmp_path)
+    input_hash = sha256_file(input_path)
+    request = replace(
+        request,
+        expected_roles=CORE_STEM_ROLES,
+        requested_roles=requested,
+        device_policy=DevicePolicy.CPU_REQUIRED,
+        use_autocast=False,
+    )
+    backend = SixStemBackend()
+
+    result = SeparationService(backend).separate(request)
+
+    assert result.success, result.error
+    assert backend.calls == 1
+    assert result.requested_roles == requested
+    assert result.inferred_roles == CORE_STEM_ROLES
+    assert result.produced_roles == requested
+    assert tuple(stem.role for stem in result.stems) == requested
+    assert sha256_file(input_path) == input_hash
+    output_audio = {path.name for path in request.output_dir.glob("*.wav")}
+    assert output_audio == {
+        f"fixture_({role.title()})_fake.wav" for role in requested
+    }
+    manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+    assert manifest["requested_roles"] == list(requested)
+    assert manifest["inferred_roles"] == list(CORE_STEM_ROLES)
+    assert manifest["produced_roles"] == list(requested)
+    assert [stem["role"] for stem in manifest["stems"]] == list(requested)
+
+
+@pytest.mark.parametrize(
+    "roles, message",
+    [
+        ((), "at least one"),
+        (("bass", "bass"), "unique"),
+        (("lead",), "unsupported"),
+        (("../input.wav",), "unsupported"),
+    ],
+)
+def test_requested_roles_reject_empty_duplicates_unknown_and_paths(
+    tmp_path: Path, roles: tuple[str, ...], message: str
+) -> None:
+    request, _ = _fixture(tmp_path)
+    with pytest.raises(ValueError, match=message):
+        replace(request, requested_roles=roles)
+
+
+def test_cleanup_refuses_unrequested_path_outside_run_directory(tmp_path: Path) -> None:
+    outside = tmp_path / "outside.wav"
+    outside.write_bytes(b"keep")
+    artifact = StemArtifact(
+        role="drums",
+        path=outside,
+        format="WAV",
+        duration_seconds=1.0,
+        sample_rate=44_100,
+        channels=2,
+        bytes=4,
+        sha256="0" * 64,
+        rms=0.1,
+        peak=0.2,
+    )
+    with pytest.raises(Exception, match="outside the run directory"):
+        SeparationService._retain_requested_stems(
+            (artifact,), ("vocals",), tmp_path / "run"
+        )
+    assert outside.read_bytes() == b"keep"

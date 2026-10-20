@@ -14,6 +14,7 @@ from .errors import (
 )
 from .models import (
     AudioMetadata,
+    CORE_STEM_ROLES,
     DeviceInfo,
     DevicePolicy,
     FileArtifact,
@@ -25,6 +26,7 @@ from .models import (
     SeparationResult,
     StemArtifact,
     TimingInfo,
+    validate_requested_roles,
 )
 from .instrumentation import (
     AnalysisWindow,
@@ -37,6 +39,7 @@ from .instrumentation import (
 
 __all__ = [
     "AudioMetadata",
+    "CORE_STEM_ROLES",
     "AnalysisWindow",
     "BackendSeparationError",
     "DeviceInfo",
@@ -64,4 +67,5 @@ __all__ = [
     "StemLabError",
     "TargetCapability",
     "TimingInfo",
+    "validate_requested_roles",
 ]

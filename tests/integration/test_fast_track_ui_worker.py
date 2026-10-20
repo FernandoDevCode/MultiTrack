@@ -28,6 +28,8 @@ def test_six_stems_end_to_end_through_ui_and_qprocess(monkeypatch) -> None:
         )
     )
     input_path = Path(evidence["input"]["path"])
+    if not input_path.is_file():
+        input_path = repo_root / ".tmp" / "phase0-smoke" / Path(evidence["run_dir"]).name / input_path.name
     input_hash = sha256_file(input_path)
 
     # If the backend attempts network after installation, this smoke must fail.
@@ -40,6 +42,7 @@ def test_six_stems_end_to_end_through_ui_and_qprocess(monkeypatch) -> None:
     window.format_combo.setCurrentIndex(1)  # FLAC
 
     payloads: list[dict] = []
+    progress: list[dict] = []
     failures: list[str] = []
     heartbeats: list[int] = []
     loop = QEventLoop()
@@ -52,6 +55,7 @@ def test_six_stems_end_to_end_through_ui_and_qprocess(monkeypatch) -> None:
     timeout.timeout.connect(loop.quit)
     timeout.start(120_000)
     window.worker.completed.connect(payloads.append)
+    window.worker.progress_changed.connect(progress.append)
     window.worker.failed.connect(failures.append)
     window.worker.process.finished.connect(loop.quit)
 
@@ -64,6 +68,14 @@ def test_six_stems_end_to_end_through_ui_and_qprocess(monkeypatch) -> None:
     assert payloads, "worker timed out before a completed event"
     result = payloads[-1]["result"]
     assert result["success"] is True
+    chunks = [event for event in progress if event["phase"] == "inference"]
+    assert len(chunks) >= 3, "real model emitted no completed-chunk observations"
+    assert chunks[0]["completed"] == 0
+    assert chunks[-1]["completed"] == chunks[-1]["total"]
+    assert any(event["eta_seconds"] is not None and event["eta_seconds"] > 0 for event in chunks)
+    assert progress[-1]["phase"] == "validating"
+    assert window.progress.value() == 100
+    assert not window.progress_timer.isActive()
     assert result["device"]["effective_device"] == "cuda"
     assert {stem["role"] for stem in result["stems"]} == {
         "vocals",

@@ -1,0 +1,331 @@
+"""Native desktop workspace composition; job and playback logic stay in MainWindow."""
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import (
+    QButtonGroup, QCheckBox, QComboBox, QFrame, QGridLayout, QGroupBox,
+    QHBoxLayout, QLabel, QProgressBar, QPushButton, QRadioButton,
+    QScrollArea, QSizePolicy, QSlider, QSplitter, QVBoxLayout, QWidget,
+)
+
+from stemlab.app import PIPELINES
+from stemlab.domain import CORE_STEM_ROLES, DevicePolicy, OutputFormat
+from stemlab.ui.branding import APP_MONOGRAM, APP_NAME
+from stemlab.ui.instrument_analysis_panel import InstrumentAnalysisPanel
+from stemlab.ui.stem_mixer import StemMixer
+from stemlab.ui.theme import control_icon
+
+if TYPE_CHECKING:
+    from stemlab.ui.main_window import MainWindow
+
+
+class StatusLabel(QLabel):
+    def setText(self, text: str) -> None:
+        tone = "error" if text.startswith("Erro") else "normal"
+        if self.property("tone") != tone:
+            self.setProperty("tone", tone)
+            self.style().unpolish(self)
+            self.style().polish(self)
+        self.setToolTip(text)
+        super().setText(text)
+
+
+def _label(text: str, name: str = "helperText") -> QLabel:
+    label = QLabel(text)
+    label.setObjectName(name)
+    label.setWordWrap(True)
+    return label
+
+
+def _scroll(widget: QWidget, name: str) -> QScrollArea:
+    scroll = QScrollArea()
+    scroll.setObjectName(name)
+    scroll.setFrameShape(QFrame.Shape.NoFrame)
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(widget)
+    return scroll
+
+
+def build_workspace(window: MainWindow) -> None:
+    window.setWindowTitle(f"{APP_NAME} — Separação de áudio")
+    window.setMinimumSize(860, 600)
+    window.resize(1180, 780)
+    central = QWidget()
+    central.setObjectName("centralPanel")
+    root = QVBoxLayout(central)
+    root.setContentsMargins(0, 0, 0, 0)
+    root.setSpacing(0)
+
+    app_bar = QFrame()
+    app_bar.setObjectName("appBar")
+    bar = QHBoxLayout(app_bar)
+    bar.setContentsMargins(18, 10, 18, 10)
+    bar.setSpacing(12)
+    mark = _label(APP_MONOGRAM, "brandMark")
+    mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    mark.setFixedSize(30, 30)
+    bar.addWidget(mark)
+    bar.addWidget(_label(APP_NAME, "appTitle"))
+    bar.addSpacing(12)
+    bar.addWidget(_label("Separação de áudio", "workspaceTitle"))
+    bar.addStretch(1)
+    window.open_audio_button = QPushButton("Abrir áudio…")
+    window.open_audio_button.setShortcut("Ctrl+O")
+    window.open_audio_button.setToolTip("Abrir arquivo de áudio · Ctrl+O")
+    window.extract_audio_button = QPushButton("Extrair de vídeo…")
+    window.extract_audio_button.setToolTip("Extrair áudio de um vídeo para WAV ou FLAC")
+    bar.addWidget(window.open_audio_button)
+    bar.addWidget(window.extract_audio_button)
+    root.addWidget(app_bar)
+
+    window.workspace_splitter = QSplitter(Qt.Orientation.Horizontal)
+    window.workspace_splitter.setChildrenCollapsible(False)
+    window.workspace_splitter.setHandleWidth(6)
+    window.workspace_splitter.setContentsMargins(12, 12, 12, 12)
+    settings = QFrame()
+    settings.setObjectName("settingsPanel")
+    settings.setMinimumWidth(280)
+    settings.setMaximumWidth(430)
+    settings_layout = QVBoxLayout(settings)
+    settings_layout.setContentsMargins(0, 0, 0, 0)
+    settings_layout.setSpacing(0)
+    settings_title = _label("Separação", "panelTitle")
+    settings_title.setMargin(16)
+    settings_layout.addWidget(settings_title)
+
+    controls = QWidget()
+    controls.setObjectName("settingsContent")
+    control_layout = QVBoxLayout(controls)
+    control_layout.setContentsMargins(16, 2, 16, 16)
+    control_layout.setSpacing(12)
+    window.mode_combo = QComboBox()
+    for pipeline in PIPELINES:
+        window.mode_combo.addItem(pipeline.label, pipeline.pipeline_id)
+    window.format_combo = QComboBox()
+    window.format_combo.addItem("WAV", OutputFormat.WAV)
+    window.format_combo.addItem("FLAC", OutputFormat.FLAC)
+    window.format_combo.addItem("MP3 (320 kbps, com perdas)", OutputFormat.MP3)
+    window.format_combo.setToolTip(
+        "Selecionado pela extensão do arquivo aberto. Você pode escolher outro formato de saída."
+    )
+    window.device_combo = QComboBox()
+    window.device_combo.addItem("Automático (GPU / CPU)", DevicePolicy.AUTO)
+    window.device_combo.addItem("GPU NVIDIA (CUDA)", DevicePolicy.CUDA_REQUIRED)
+    window.device_combo.addItem("CPU (mais lento)", DevicePolicy.CPU_REQUIRED)
+    for text, combo in (("Preset", window.mode_combo),
+                        ("Formato de saída", window.format_combo),
+                        ("Dispositivo", window.device_combo)):
+        field = QVBoxLayout()
+        field.setSpacing(5)
+        label = _label(text, "fieldLabel")
+        label.setBuddy(combo)
+        field.addWidget(label)
+        combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        combo.setMinimumContentsLength(8)
+        combo.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        combo.setAccessibleName(text)
+        field.addWidget(combo)
+        control_layout.addLayout(field)
+    window.mode_description = _label("")
+    control_layout.addWidget(window.mode_description)
+
+    window.stem_selection_group = QGroupBox("Faixas desejadas")
+    selection = QVBoxLayout(window.stem_selection_group)
+    selection.setContentsMargins(0, 22, 0, 0)
+    selection.setSpacing(12)
+    check_grid = QGridLayout()
+    check_grid.setHorizontalSpacing(12)
+    check_grid.setVerticalSpacing(10)
+    window.stem_checkboxes = {}
+    for index, role in enumerate(CORE_STEM_ROLES):
+        checkbox = QCheckBox(role.title())
+        checkbox.setChecked(True)
+        window.stem_checkboxes[role] = checkbox
+        check_grid.addWidget(checkbox, index // 2, index % 2)
+    selection.addLayout(check_grid)
+    selection.addWidget(_label(
+        "Menos faixas economizam disco; o cálculo continua sendo de seis fontes."
+    ))
+    control_layout.addWidget(window.stem_selection_group)
+    window.device_hint = _label("", "hintLabel")
+    control_layout.addWidget(window.device_hint)
+    control_layout.addSpacing(4)
+    experimental = QGroupBox("Análise experimental")
+    experimental_layout = QVBoxLayout(experimental)
+    experimental_layout.setContentsMargins(0, 22, 0, 0)
+    experimental_layout.setSpacing(8)
+    window.analyze_button = QPushButton("Analisar instrumentos")
+    window.analyze_button.setToolTip("Sugestões experimentais; não altera as faixas desejadas")
+    experimental_layout.addWidget(window.analyze_button)
+    control_layout.addWidget(experimental)
+    control_layout.addStretch(1)
+    settings_scroll = _scroll(controls, "settingsScroll")
+    settings_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+    settings_layout.addWidget(settings_scroll, 1)
+
+    action_panel = QFrame()
+    action_panel.setObjectName("actionPanel")
+    action_layout = QVBoxLayout(action_panel)
+    action_layout.setContentsMargins(16, 12, 16, 14)
+    action_layout.setSpacing(9)
+    window.separate_button = QPushButton("Separar")
+    window.separate_button.setObjectName("primaryButton")
+    window.separate_button.setMinimumHeight(34)
+    window.separate_button.setShortcut("Ctrl+Return")
+    window.separate_button.setToolTip("Separar as faixas selecionadas · Ctrl+Enter")
+    action_layout.addWidget(window.separate_button)
+    window.progress = QProgressBar()
+    window.progress.setRange(0, 1)
+    window.progress.setValue(0)
+    window.progress.setTextVisible(False)
+    window.progress.setAccessibleName("Progresso da separação")
+    action_layout.addWidget(window.progress)
+    window.progress_label = _label("", "progressLabel")
+    window.progress_label.setAccessibleName("Porcentagem e etapa da separação")
+    window.progress_label.setToolTip(
+        "A porcentagem acompanha os blocos da IA. Gravação e validação mantêm "
+        "99% até a separação concluir com sucesso."
+    )
+    action_layout.addWidget(window.progress_label)
+    window.eta_label = _label("")
+    window.eta_label.setAccessibleName("Tempo decorrido e estimativa restante")
+    window.eta_label.setToolTip(
+        "Estimativa baseada na velocidade dos blocos desta execução. "
+        "O tempo de gravação e validação dos arquivos é adicional."
+    )
+    action_layout.addWidget(window.eta_label)
+    settings_layout.addWidget(action_panel)
+    window.workspace_splitter.addWidget(settings)
+
+    workspace = QFrame()
+    workspace.setObjectName("workspacePanel")
+    workspace.setMinimumWidth(480)
+    workspace_layout = QVBoxLayout(workspace)
+    workspace_layout.setContentsMargins(0, 0, 0, 0)
+    workspace_layout.setSpacing(0)
+    source_panel = QFrame()
+    source_panel.setObjectName("sourcePanel")
+    source_layout = QVBoxLayout(source_panel)
+    source_layout.setContentsMargins(18, 14, 18, 14)
+    source_layout.setSpacing(5)
+    source_layout.addWidget(_label("ARQUIVO DE ORIGEM", "eyebrowLabel"))
+    window.file_label = _label("Nenhum arquivo selecionado", "filePathLabel")
+    window.file_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+    source_layout.addWidget(window.file_label)
+    workspace_layout.addWidget(source_panel)
+    workspace_content = QWidget()
+    workspace_content.setObjectName("workspaceContent")
+    content = QVBoxLayout(workspace_content)
+    content.setContentsMargins(18, 18, 18, 18)
+    content.setSpacing(20)
+
+    window.empty_panel = QWidget()
+    empty = QVBoxLayout(window.empty_panel)
+    empty.setContentsMargins(20, 32, 20, 32)
+    empty.setSpacing(12)
+    empty.addStretch(1)
+    symbol = _label("♪", "emptySymbol")
+    symbol.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    empty.addWidget(symbol)
+    window.empty_title = _label("Abra um arquivo de áudio", "emptyTitle")
+    window.empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    empty.addWidget(window.empty_title)
+    window.empty_description = _label("Escolha uma música para separar e ouvir cada instrumento.")
+    window.empty_description.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    empty.addWidget(window.empty_description)
+    empty.addSpacing(20)
+    steps = QHBoxLayout()
+    steps.setSpacing(16)
+    for number, text in (("01", "Abrir áudio"), ("02", "Escolher faixas"), ("03", "Ouvir e exportar")):
+        step = _label(f"{number}\n{text}", "stepLabel")
+        step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        steps.addWidget(step, 1)
+    empty.addLayout(steps)
+    empty.addStretch(1)
+    content.addWidget(window.empty_panel, 1)
+
+    window.result_group = QGroupBox("Monitor")
+    result_layout = QVBoxLayout(window.result_group)
+    result_layout.setContentsMargins(0, 26, 0, 0)
+    result_layout.setSpacing(10)
+    transport_panel = QFrame()
+    transport_panel.setObjectName("transportPanel")
+    transport = QHBoxLayout(transport_panel)
+    transport.setContentsMargins(12, 10, 12, 10)
+    transport.setSpacing(12)
+    window.play_button = QPushButton("Play")
+    window.play_button.setObjectName("playButton")
+    window.play_button.setIcon(control_icon("play"))
+    window.play_button.setShortcut("Ctrl+Space")
+    window.play_button.setToolTip("Reproduzir / pausar · Ctrl+Espaço")
+    window.play_button.setMinimumWidth(78)
+    window.seek_slider = QSlider(Qt.Orientation.Horizontal)
+    window.seek_slider.setRange(0, 1000)
+    window.seek_slider.setAccessibleName("Posição de reprodução")
+    window.time_label = _label("00:00 / 00:00", "timeLabel")
+    window.time_label.setWordWrap(False)
+    transport.addWidget(window.play_button)
+    transport.addWidget(window.seek_slider, 1)
+    transport.addWidget(window.time_label)
+    result_layout.addWidget(transport_panel)
+    ab_row = QHBoxLayout()
+    ab_row.setSpacing(16)
+    ab_row.addWidget(_label("Escutar", "fieldLabel"))
+    window.original_radio = QRadioButton("Original")
+    window.stems_radio = QRadioButton("Stems selecionados")
+    window.stems_radio.setChecked(True)
+    window.ab_group = QButtonGroup(window)
+    window.ab_group.setExclusive(True)
+    window.ab_group.addButton(window.original_radio)
+    window.ab_group.addButton(window.stems_radio)
+    ab_row.addWidget(window.original_radio)
+    ab_row.addWidget(window.stems_radio)
+    ab_row.addStretch(1)
+    result_layout.addLayout(ab_row)
+    result_layout.addWidget(_label("FAIXAS  /  MIXER", "eyebrowLabel"))
+    window.stem_mixer = StemMixer(window.player, window)
+    result_layout.addWidget(window.stem_mixer)
+    result_layout.addWidget(_label("Mute, Solo e volume afetam a escuta. A exportação preserva o arquivo gerado."))
+    actions = QHBoxLayout()
+    actions.setSpacing(8)
+    window.export_all_button = QPushButton("Exportar todos")
+    window.export_all_button.setShortcut("Ctrl+Shift+E")
+    window.export_all_button.setToolTip("Exportar todas as faixas geradas · Ctrl+Shift+E")
+    window.open_folder_button = QPushButton("Abrir pasta")
+    actions.addWidget(window.export_all_button)
+    actions.addWidget(window.open_folder_button)
+    actions.addStretch(1)
+    result_layout.addLayout(actions)
+    result_layout.addStretch(1)
+    content.addWidget(window.result_group, 1)
+
+    window.analysis_group = QGroupBox("Análise de instrumentos · Experimental")
+    analysis_layout = QVBoxLayout(window.analysis_group)
+    analysis_layout.setContentsMargins(0, 26, 0, 0)
+    window.instrument_panel = InstrumentAnalysisPanel(window.analysis_group)
+    analysis_layout.addWidget(window.instrument_panel)
+    content.addWidget(window.analysis_group)
+    window.analysis_group.hide()
+    window.workspace_scroll = _scroll(workspace_content, "workspaceScroll")
+    workspace_layout.addWidget(window.workspace_scroll, 1)
+    window.workspace_splitter.addWidget(workspace)
+    window.workspace_splitter.setStretchFactor(0, 0)
+    window.workspace_splitter.setStretchFactor(1, 1)
+    window.workspace_splitter.setSizes([310, 820])
+    root.addWidget(window.workspace_splitter, 1)
+
+    footer = QFrame()
+    footer.setObjectName("statusBar")
+    footer_layout = QHBoxLayout(footer)
+    footer_layout.setContentsMargins(18, 8, 18, 8)
+    footer_layout.setSpacing(20)
+    window.status_label = StatusLabel()
+    window.status_label.setObjectName("statusLabel")
+    window.status_label.setWordWrap(True)
+    window.status_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+    footer_layout.addWidget(window.status_label, 1)
+    footer_layout.addWidget(_label("Processamento local", "localLabel"))
+    root.addWidget(footer)
+    window.setCentralWidget(central)

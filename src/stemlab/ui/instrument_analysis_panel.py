@@ -31,7 +31,9 @@ class InstrumentAnalysisPanel(QWidget):
         for row, target in enumerate(CANONICAL_TARGETS, start=1):
             checkbox = QCheckBox(TARGET_LABELS[target])
             evidence = QLabel("—")
+            evidence.setWordWrap(True)
             capability = QLabel()
+            capability.setWordWrap(True)
             checkbox.toggled.connect(self._selection_updated)
             self.checkboxes[target] = checkbox
             self.evidence_labels[target] = evidence

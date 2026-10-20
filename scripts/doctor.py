@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import importlib.metadata
 import hashlib
 import math
@@ -14,7 +15,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_PYTHON = (3, 12, 10)
 EXPECTED_TORCH = "2.8.0+cu128"
 EXPECTED_GPU = "NVIDIA GeForce RTX 5060"
-EXPECTED_MODEL_FILES = {
+GPU_ONLY_MODEL_FILES = {
     "model_bs_roformer_ep_317_sdr_12.9755.ckpt": (
         639_331_213,
         "5b84f37e8d444c8cb30c79d77f613a41c05868ff9c9ac6c7049c00aefae115aa",
@@ -23,6 +24,8 @@ EXPECTED_MODEL_FILES = {
         2_273,
         "2bfdd16c656bd9519aba757cc4f8834b7ede675eb1e00ec4772d74ae1c41af7f",
     ),
+}
+CORE_MODEL_FILES = {
     "BS-Roformer-SW.ckpt": (
         699_412_152,
         "24e7d35ee9c64415673d3fd33e06a67cac2c103c5df6267ba1576459c775916e",
@@ -117,7 +120,7 @@ def check_nvidia_smi() -> None:
     result("PASS", f"nvidia-smi: {observed}")
 
 
-def check_torch() -> None:
+def check_torch(profile: str) -> None:
     try:
         import torch
     except Exception as exc:  # diagnostic boundary
@@ -130,6 +133,22 @@ def check_torch() -> None:
         fail(f"PyTorch version mismatch: expected {EXPECTED_TORCH}, got {torch.__version__}")
 
     result("INFO", f"PyTorch compiled CUDA runtime: {torch.version.cuda}")
+    if profile == "cpu":
+        try:
+            tensor = torch.arange(1, 4097, dtype=torch.float32, device="cpu")
+            value = tensor.square().mean().item()
+            if tensor.device.type != "cpu" or tensor.dtype != torch.float32:
+                raise RuntimeError(
+                    f"expected CPU float32 tensor, got {tensor.device}/{tensor.dtype}"
+                )
+            if not math.isfinite(value):
+                raise RuntimeError("CPU tensor result was not finite")
+        except Exception as exc:  # diagnostic boundary
+            fail(f"CPU tensor smoke failed: {exc}")
+            return
+        result("PASS", f"CPU FP32 tensor smoke: result={value:.3f}")
+        return
+
     if not torch.cuda.is_available():
         fail("torch.cuda.is_available() returned False")
         return
@@ -258,9 +277,12 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def check_smoke_model() -> None:
+def check_smoke_model(profile: str) -> None:
     model_dir = REPO_ROOT / "models"
-    for filename, (expected_size, expected_sha256) in EXPECTED_MODEL_FILES.items():
+    expected_files = dict(CORE_MODEL_FILES)
+    if profile == "gpu":
+        expected_files.update(GPU_ONLY_MODEL_FILES)
+    for filename, (expected_size, expected_sha256) in expected_files.items():
         path = model_dir / filename
         if not path.is_file():
             fail(f"Smoke model artifact is missing: {path}")
@@ -293,22 +315,41 @@ def check_specialist_candidates() -> None:
         )
 
 
-def main() -> int:
-    result("INFO", f"StemLab root: {REPO_ROOT}")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="stemlab-doctor")
+    parser.add_argument("--profile", choices=("gpu", "cpu"), default="gpu")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    failures.clear()
+    args = build_parser().parse_args(argv)
+    profile = args.profile
+    result("INFO", f"MultiTrack root: {REPO_ROOT}")
+    result("INFO", f"Diagnostic profile: {profile}")
     free_bytes = shutil.disk_usage(REPO_ROOT).free
     result("INFO", f"Free disk space: {free_bytes / (1024**3):.2f} GiB")
     check_python()
     check_local_environment()
-    check_nvidia_smi()
-    check_torch()
+    if profile == "gpu":
+        check_nvidia_smi()
+    else:
+        result("INFO", "NVIDIA/CUDA checks are not applicable to the CPU profile")
+    check_torch(profile)
     check_audio_separator()
     check_pyside()
     check_sounddevice()
-    check_transformers_and_detector()
+    if profile == "gpu":
+        check_transformers_and_detector()
+    else:
+        result("INFO", "CLAP detector is optional and not checked by the CPU profile")
     check_local_tool("ffmpeg")
     check_local_tool("ffprobe")
-    check_smoke_model()
-    check_specialist_candidates()
+    check_smoke_model(profile)
+    if profile == "gpu":
+        check_specialist_candidates()
+    else:
+        result("INFO", "Research-only specialists are not applicable to the CPU profile")
 
     if failures:
         result("FAIL", f"Doctor completed with {len(failures)} blocking issue(s)")

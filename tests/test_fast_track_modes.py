@@ -60,7 +60,7 @@ def test_six_stem_request_uses_verified_local_artifacts(tmp_path: Path) -> None:
         output_dir=tmp_path / "outputs" / "song" / "run",
         output_format=OutputFormat.FLAC,
     )
-    assert request.device_policy is DevicePolicy.CUDA_REQUIRED
+    assert request.device_policy is DevicePolicy.AUTO
     assert request.output_format is OutputFormat.FLAC
     assert request.model.backend_filename is None
     assert request.model.checkpoint_path == tmp_path / "models" / "BS-Roformer-SW.ckpt"
@@ -70,6 +70,23 @@ def test_six_stem_request_uses_verified_local_artifacts(tmp_path: Path) -> None:
         "b558996f1e25eb48798bd6502505a5de94c4f966d6edfb1a0420f06cc40b501a",
     )
     assert request.expected_roles == SIX_STEMS.expected_roles
+    assert request.requested_roles is None
+
+
+@pytest.mark.parametrize("policy", tuple(DevicePolicy))
+def test_request_propagates_every_device_policy(tmp_path: Path, policy: DevicePolicy) -> None:
+    request = build_request(
+        repo_root=tmp_path,
+        input_path=tmp_path / "song.wav",
+        mode_id=SIX_STEMS.mode_id,
+        output_dir=tmp_path / "out",
+        output_format=OutputFormat.WAV,
+        device_policy=policy,
+        requested_roles=("bass", "guitar"),
+    )
+    assert request.device_policy is policy
+    assert request.requested_roles == ("bass", "guitar")
+    assert request.use_autocast is (policy is not DevicePolicy.CPU_REQUIRED)
 
 
 def test_output_directory_is_safe_unique_and_below_outputs(tmp_path: Path) -> None:

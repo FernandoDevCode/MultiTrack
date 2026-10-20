@@ -13,11 +13,32 @@ _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
 class OutputFormat(str, Enum):
     WAV = "WAV"
     FLAC = "FLAC"
+    MP3 = "MP3"
 
 
 class DevicePolicy(str, Enum):
     CUDA_REQUIRED = "cuda"
+    CPU_REQUIRED = "cpu"
     AUTO = "auto"
+
+
+CORE_STEM_ROLES = ("vocals", "drums", "bass", "guitar", "piano", "other")
+
+
+def validate_requested_roles(roles: tuple[str, ...]) -> tuple[str, ...]:
+    normalized = tuple(role.strip().lower() for role in roles)
+    if not normalized:
+        raise ValueError("requested_roles must contain at least one Core Stem")
+    if any(not role for role in normalized):
+        raise ValueError("requested_roles must not contain empty values")
+    if len(set(normalized)) != len(normalized):
+        raise ValueError("requested_roles must be unique")
+    unknown = sorted(set(normalized) - set(CORE_STEM_ROLES))
+    if unknown:
+        raise ValueError(
+            "requested_roles contains unsupported Core Stem IDs: " + ", ".join(unknown)
+        )
+    return normalized
 
 
 @dataclass(frozen=True)
@@ -52,11 +73,16 @@ class SeparationRequest:
     device_policy: DevicePolicy = DevicePolicy.CUDA_REQUIRED
     use_autocast: bool = True
     expected_roles: tuple[str, ...] = ()
+    requested_roles: tuple[str, ...] | None = None
 
     def __post_init__(self) -> None:
         normalized = tuple(role.strip().lower() for role in self.expected_roles)
         if any(not role for role in normalized) or len(set(normalized)) != len(normalized):
             raise ValueError("expected_roles must be non-empty and unique")
+        if self.requested_roles is not None:
+            object.__setattr__(
+                self, "requested_roles", validate_requested_roles(self.requested_roles)
+            )
 
 
 @dataclass(frozen=True)
@@ -134,6 +160,9 @@ class SeparationResult:
     backend: str | None
     device: DeviceInfo | None
     timings: TimingInfo | None
+    requested_roles: tuple[str, ...]
+    inferred_roles: tuple[str, ...]
+    produced_roles: tuple[str, ...]
     stems: tuple[StemArtifact, ...]
     warnings: tuple[str, ...]
     error: SeparationErrorInfo | None

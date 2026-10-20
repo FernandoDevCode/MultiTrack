@@ -11,6 +11,7 @@ from typing import Iterator
 import torch
 from audio_separator.separator import Separator
 from audio_separator.separator.architectures.mdxc_separator import MDXCSeparator
+from audio_separator.separator.architectures import mdxc_separator
 from audio_separator.separator.roformer.roformer_loader import RoformerLoader
 from audio_separator.separator.uvr_lib_v5.roformer.mel_band_roformer import (
     MaskEstimator,
@@ -21,9 +22,12 @@ from stemlab.domain import (
     BackendSeparationError,
     DevicePolicy,
     DeviceUnavailableError,
+    OutputFormat,
     SeparationRequest,
 )
 from stemlab.separation.backend import BackendResult, BackendStem
+from stemlab.domain.progress import ProgressCallback, SeparationProgress
+from stemlab.separation.progress import iteration_total, observe_iterations
 from stemlab.separation.specialist_candidates import (
     LEAD_RHYTHM_LISTRA92,
     SpecialistCandidate,
@@ -39,9 +43,13 @@ class AudioSeparatorBackend:
 
     backend_id = "audio-separator/0.47.0"
 
-    def __init__(self, *, models_dir: Path, ffmpeg_bin: Path | None = None) -> None:
+    def __init__(
+        self, *, models_dir: Path, ffmpeg_bin: Path | None = None,
+        on_progress: ProgressCallback | None = None,
+    ) -> None:
         self.models_dir = models_dir.resolve()
         self.ffmpeg_bin = ffmpeg_bin.resolve() if ffmpeg_bin else None
+        self._on_progress = on_progress
 
     def separate(
         self, request: SeparationRequest, input_metadata: AudioMetadata
@@ -55,11 +63,18 @@ class AudioSeparatorBackend:
                 "Model artifacts must be located inside the configured models directory.",
                 details={"models_dir": str(self.models_dir)},
             )
-        if request.device_policy is DevicePolicy.CUDA_REQUIRED and not torch.cuda.is_available():
+        cuda_available = torch.cuda.is_available()
+        if request.device_policy is DevicePolicy.CUDA_REQUIRED and not cuda_available:
             raise DeviceUnavailableError(
                 "CUDA was required but is not available.",
                 details={"requested_policy": request.device_policy.value},
             )
+        target_device = (
+            "cpu"
+            if request.device_policy is DevicePolicy.CPU_REQUIRED or not cuda_available
+            else "cuda"
+        )
+        effective_autocast = request.use_autocast and target_device == "cuda"
 
         output_dir = request.output_dir.resolve()
         separator_kwargs = {
@@ -70,8 +85,13 @@ class AudioSeparatorBackend:
             "normalization_threshold": 1.0,
             "amplification_threshold": 0.0,
             "sample_rate": input_metadata.sample_rate,
-            "use_soundfile": True,
-            "use_autocast": request.use_autocast,
+            # MP3 is an explicit lossy export. The pinned upstream uses pydub
+            # with the project-local FFmpeg for it; WAV/FLAC keep soundfile.
+            "use_soundfile": request.output_format is not OutputFormat.MP3,
+            "output_bitrate": (
+                "320k" if request.output_format is OutputFormat.MP3 else None
+            ),
+            "use_autocast": effective_autocast,
             "mdxc_params": {
                 "segment_size": 256,
                 "override_model_segment_size": False,
@@ -92,10 +112,14 @@ class AudioSeparatorBackend:
                 specialist = resolve_verified_specialist(request.model, self.models_dir)
                 separator = self._separator_for(specialist, separator_kwargs)
                 selected_device = separator.torch_device.type
-                if request.device_policy is DevicePolicy.CUDA_REQUIRED and selected_device != "cuda":
+                if selected_device != target_device:
                     raise DeviceUnavailableError(
-                        "audio-separator selected a non-CUDA device while CUDA was required.",
-                        details={"selected_device": str(separator.torch_device)},
+                        "audio-separator selected a device that violates the requested policy.",
+                        details={
+                            "requested_policy": request.device_policy.value,
+                            "expected_device": target_device,
+                            "selected_device": str(separator.torch_device),
+                        },
                     )
 
                 if selected_device == "cuda":
@@ -116,6 +140,7 @@ class AudioSeparatorBackend:
                         "Backend model identifier is not one of the verified artifacts.",
                         details={"backend_filename": backend_filename},
                     )
+                self._report_progress("loading")
                 separator.load_model(backend_filename)
                 self._synchronize(selected_device)
                 load_seconds = time.perf_counter() - load_start
@@ -124,14 +149,33 @@ class AudioSeparatorBackend:
                     separator.model_instance, "torch_device", separator.torch_device
                 )
                 effective_device = model_device.type
-                if request.device_policy is DevicePolicy.CUDA_REQUIRED and effective_device != "cuda":
+                if effective_device != target_device:
                     raise DeviceUnavailableError(
-                        "Loaded model is not on CUDA while CUDA was required.",
-                        details={"model_device": str(model_device)},
+                        "Loaded model device violates the requested policy.",
+                        details={
+                            "requested_policy": request.device_policy.value,
+                            "expected_device": target_device,
+                            "model_device": str(model_device),
+                        },
+                    )
+
+                effective_precision = getattr(separator, "effective_precision", None)
+                if effective_device == "cpu" and effective_precision != "fp32":
+                    raise DeviceUnavailableError(
+                        "CPU execution must use FP32 without autocast.",
+                        details={
+                            "effective_device": effective_device,
+                            "effective_precision": effective_precision,
+                            "use_autocast": effective_autocast,
+                        },
                     )
 
                 inference_start = time.perf_counter()
-                returned = separator.separate(str(request.input_path.resolve()))
+                with (
+                    self._compatible_soundfile_output(separator, request.output_format),
+                    self._observe_inference_progress(effective_device),
+                ):
+                    returned = separator.separate(str(request.input_path.resolve()))
                 self._synchronize(effective_device)
                 inference_seconds = time.perf_counter() - inference_start
                 total_seconds = time.perf_counter() - total_start
@@ -141,14 +185,14 @@ class AudioSeparatorBackend:
                     for path in self._resolve_outputs(output_dir, returned)
                 )
                 warnings: tuple[str, ...] = ()
-                if effective_device != "cuda":
+                if effective_device == "cpu":
                     warnings = (
-                        "Device policy 'auto' selected CPU; this was explicit, not a silent fallback.",
+                        "CPU execution is active and can be slow; ETA requires observed progress.",
                     )
                 return BackendResult(
                     backend_id=self.backend_id,
                     effective_device=effective_device,
-                    effective_precision=getattr(separator, "effective_precision", None),
+                    effective_precision=effective_precision,
                     model_load_seconds=load_seconds,
                     inference_seconds=inference_seconds,
                     total_seconds=total_seconds,
@@ -173,6 +217,88 @@ class AudioSeparatorBackend:
                 "audio-separator failed.",
                 details={"exception_type": type(exc).__name__, "reason": str(exc)},
             ) from exc
+
+    def _report_progress(self, phase: str) -> None:
+        if self._on_progress is not None:
+            self._on_progress(SeparationProgress(phase))
+
+    @contextmanager
+    def _observe_inference_progress(self, device: str) -> Iterator[None]:
+        """Scope the pinned MDXC iterator hook to this single-model worker run.
+
+        No dependency files or global tqdm class are modified. Headless callers
+        without an observer retain the upstream path unchanged.
+        """
+        callback = self._on_progress
+        if callback is None:
+            yield
+            return
+        original = mdxc_separator.tqdm
+
+        def observed(iterable, *args, **kwargs):
+            total = iteration_total(iterable, kwargs.get("total"))
+            if total is None:
+                yield from original(iterable, *args, **kwargs)
+                return
+
+            def synchronized_clock() -> float:
+                # CUDA work is asynchronous. Observe actual finished chunks,
+                # not just kernel submissions, before measuring throughput.
+                self._synchronize(device)
+                return time.perf_counter()
+
+            yield from observe_iterations(
+                original(iterable, *args, **kwargs), total=total, callback=callback,
+                clock=synchronized_clock,
+            )
+            self._report_progress("writing")
+
+        mdxc_separator.tqdm = observed
+        try:
+            yield
+        finally:
+            mdxc_separator.tqdm = original
+
+    @staticmethod
+    @contextmanager
+    def _compatible_soundfile_output(
+        separator: Separator, output_format: OutputFormat
+    ) -> Iterator[None]:
+        """Constrain 0.47.0's inherited input subtype to the output container.
+
+        Upstream has no output-subtype option. Wrap only this loaded instance's
+        writer, after prepare_mix has detected the input encoding; retain its
+        normalization, atomic publication and writing implementation unchanged.
+        """
+        model = separator.model_instance
+        writer = getattr(model, "write_audio_soundfile", None)
+        if output_format is OutputFormat.MP3 or writer is None:
+            yield
+            return
+
+        def write_compatible(stem_path, stem_source):
+            original_subtype = model.input_subtype
+            # libsndfile advertises MPEG-in-WAV as valid but cannot encode it
+            # in this runtime. Permit only lossless PCM/float output encodings.
+            allowed = (
+                {"PCM_16", "PCM_24", "PCM_32", "PCM_U8", "FLOAT", "DOUBLE"}
+                if output_format is OutputFormat.WAV
+                else {"PCM_S8", "PCM_16", "PCM_24"}
+            )
+            if original_subtype not in allowed:
+                model.input_subtype = (
+                    "FLOAT" if output_format is OutputFormat.WAV else "PCM_24"
+                )
+            try:
+                return writer(stem_path, stem_source)
+            finally:
+                model.input_subtype = original_subtype
+
+        model.write_audio_soundfile = write_compatible
+        try:
+            yield
+        finally:
+            model.write_audio_soundfile = writer
 
     @staticmethod
     def _synchronize(device: str) -> None:

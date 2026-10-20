@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
-
-from stemlab.app import SeparationService
-from stemlab.domain import DevicePolicy, ModelSpec, OutputFormat, SeparationRequest
-from stemlab.separation.audio_separator_adapter import AudioSeparatorBackend
-
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="stemlab")
@@ -21,11 +17,21 @@ def build_parser() -> argparse.ArgumentParser:
     separate.add_argument("--model-config-sha256", action="append", default=[])
     separate.add_argument("--backend-filename")
     separate.add_argument("--expect-stem", action="append", default=[])
+    separate.add_argument(
+        "--stem",
+        action="append",
+        default=None,
+        help="Core Stem to retain; repeat for multiple roles (default: all outputs)",
+    )
     separate.add_argument("--output", type=Path, required=True)
     separate.add_argument(
-        "--format", choices=("wav", "flac"), default="wav", dest="output_format"
+        "--format",
+        choices=("wav", "flac", "mp3"),
+        default="wav",
+        dest="output_format",
+        help="Stem output format; MP3 is a lossy 320 kbps export.",
     )
-    separate.add_argument("--device", choices=("cuda", "auto"), default="cuda")
+    separate.add_argument("--device", choices=("cuda", "auto", "cpu"), default="auto")
     separate.add_argument("--no-autocast", action="store_true")
     separate.add_argument("--json", action="store_true", dest="print_json")
     return parser
@@ -37,6 +43,14 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(
             "Each --model-config requires one matching --model-config-sha256."
         )
+
+    if args.device == "cpu":
+        # Force CPU visibility before importing the adapter and therefore Torch.
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    from stemlab.app import SeparationService
+    from stemlab.domain import DevicePolicy, ModelSpec, OutputFormat, SeparationRequest
+    from stemlab.separation.audio_separator_adapter import AudioSeparatorBackend
 
     repo_root = Path(__file__).resolve().parents[2]
     request = SeparationRequest(
@@ -54,6 +68,7 @@ def main(argv: list[str] | None = None) -> int:
         device_policy=DevicePolicy(args.device),
         use_autocast=not args.no_autocast,
         expected_roles=tuple(args.expect_stem),
+        requested_roles=None if args.stem is None else tuple(args.stem),
     )
     backend = AudioSeparatorBackend(
         models_dir=repo_root / "models",

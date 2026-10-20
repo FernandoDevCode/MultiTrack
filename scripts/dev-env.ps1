@@ -23,13 +23,19 @@ foreach ($path in ($localPaths.Values | Select-Object -Unique)) {
 foreach ($entry in $localPaths.GetEnumerator()) {
     [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, 'Process')
 }
+$env:PYTHONUTF8 = '1'
 
 $activateScript = Join-Path $repoRoot '.venv\Scripts\Activate.ps1'
 if (Test-Path -LiteralPath $activateScript) {
+    $bundledPython = Join-Path $repoRoot 'tools\python312\python.exe'
+    & $bundledPython -X utf8 (Join-Path $repoRoot 'scripts\repair-local-runtime.py')
+    if ($LASTEXITCODE -ne 0) {
+        throw 'MultiTrack local runtime repair failed.'
+    }
     . $activateScript
-    Write-Host "StemLab environment active: $env:VIRTUAL_ENV"
+    Write-Host "MultiTrack environment active: $env:VIRTUAL_ENV"
 } else {
-    Write-Warning "StemLab .venv not found at $(Join-Path $repoRoot '.venv')."
+    Write-Warning "MultiTrack .venv not found at $(Join-Path $repoRoot '.venv')."
 }
 
 # Apply tool paths after virtualenv activation because Activate.ps1 may restore
@@ -47,4 +53,4 @@ if (Test-Path -LiteralPath $ffmpegBin) {
     $env:PATH = (@($ffmpegBin) + $existingPathEntries) -join $pathSeparator
 }
 
-Write-Host "StemLab repository: $repoRoot"
+Write-Host "MultiTrack repository: $repoRoot"

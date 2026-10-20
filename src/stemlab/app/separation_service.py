@@ -5,7 +5,12 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 
-from stemlab.audio import audio_signal_stats, probe_audio, sha256_file
+from stemlab.audio import (
+    SUPPORTED_INPUT_SUFFIXES,
+    audio_signal_stats,
+    probe_audio,
+    sha256_file,
+)
 from stemlab.domain import (
     DeviceInfo,
     FileArtifact,
@@ -25,12 +30,17 @@ from stemlab.domain import (
     TimingInfo,
 )
 from stemlab.separation import SeparationBackend
+from stemlab.domain.progress import ProgressCallback, SeparationProgress
 
 
 class SeparationService:
-    def __init__(self, backend: SeparationBackend, *, duration_tolerance_seconds: float = 0.1) -> None:
+    def __init__(
+        self, backend: SeparationBackend, *, duration_tolerance_seconds: float = 0.1,
+        on_progress: ProgressCallback | None = None,
+    ) -> None:
         self._backend = backend
         self._duration_tolerance_seconds = duration_tolerance_seconds
+        self._on_progress = on_progress
 
     def separate(self, request: SeparationRequest) -> SeparationResult:
         started_at = _utc_now()
@@ -39,6 +49,8 @@ class SeparationService:
         model_artifact = None
         output_prepared = False
         try:
+            if self._on_progress is not None:
+                self._on_progress(SeparationProgress("preparing"))
             input_path = request.input_path.resolve()
             self._validate_input(input_path)
             try:
@@ -52,6 +64,8 @@ class SeparationService:
             output_prepared = True
 
             backend_result = self._backend.separate(request, input_metadata)
+            if self._on_progress is not None:
+                self._on_progress(SeparationProgress("validating"))
             if sha256_file(input_path) != input_metadata.sha256:
                 raise InputModifiedError(
                     "Input file changed during separation.",
@@ -72,9 +86,26 @@ class SeparationService:
                             "actual_roles": sorted(actual),
                         },
                     )
+            inferred_roles = tuple(stem.role for stem in stems)
+            requested_roles = (
+                request.requested_roles or request.expected_roles or inferred_roles
+            )
+            missing_requested = sorted(set(requested_roles) - set(inferred_roles))
+            if missing_requested:
+                raise OutputValidationError(
+                    "Requested Core Stems were not produced by the backend.",
+                    details={"missing_requested_roles": missing_requested},
+                )
+            delivered_stems = self._retain_requested_stems(
+                stems, requested_roles, output_dir
+            )
             warnings = tuple(backend_result.warnings) + validation_warnings
+            if len(delivered_stems) < len(stems):
+                warnings += (
+                    "Only requested Core Stems were retained; the model still inferred all six sources.",
+                )
             result = SeparationResult(
-                schema_version=1,
+                schema_version=2,
                 success=True,
                 started_at=started_at,
                 completed_at=_utc_now(),
@@ -93,20 +124,24 @@ class SeparationService:
                     inference_seconds=backend_result.inference_seconds,
                     total_seconds=backend_result.total_seconds,
                 ),
-                stems=stems,
+                requested_roles=tuple(requested_roles),
+                inferred_roles=inferred_roles,
+                produced_roles=tuple(stem.role for stem in delivered_stems),
+                stems=delivered_stems,
                 warnings=warnings,
                 error=None,
                 manifest_path=None,
             )
         except StemLabError as exc:
             result = self._failure_result(
-                started_at, input_metadata, model_artifact, exc
+                started_at, input_metadata, model_artifact, request, exc
             )
         except Exception as exc:  # Defensive boundary for CLI callers.
             result = self._failure_result(
                 started_at,
                 input_metadata,
                 model_artifact,
+                request,
                 StemLabError(
                     "Unexpected separation engine failure.",
                     details={"exception_type": type(exc).__name__, "reason": str(exc)},
@@ -122,6 +157,14 @@ class SeparationService:
         if not path.is_file():
             raise InputNotFoundError(
                 f"Input audio does not exist: {path}", details={"path": str(path)}
+            )
+        if path.suffix.lower() not in SUPPORTED_INPUT_SUFFIXES:
+            raise InputValidationError(
+                "Input audio format is not supported.",
+                details={
+                    "path": str(path),
+                    "supported_extensions": sorted(SUPPORTED_INPUT_SUFFIXES),
+                },
             )
 
     @staticmethod
@@ -266,9 +309,42 @@ class SeparationService:
         return tuple(artifacts), tuple(warnings)
 
     @staticmethod
-    def _failure_result(started_at, input_metadata, model_artifact, exc: StemLabError):
+    def _retain_requested_stems(
+        stems: tuple[StemArtifact, ...],
+        requested_roles: tuple[str, ...],
+        output_dir: Path,
+    ) -> tuple[StemArtifact, ...]:
+        requested = set(requested_roles)
+        delivered: list[StemArtifact] = []
+        for stem in stems:
+            path = stem.path.resolve()
+            if stem.role in requested:
+                delivered.append(stem)
+                continue
+            if output_dir not in path.parents:
+                raise OutputValidationError(
+                    "Refusing to remove an unrequested output outside the run directory.",
+                    details={"path": str(path), "output_dir": str(output_dir)},
+                )
+            try:
+                path.unlink()
+            except OSError as exc:
+                raise OutputValidationError(
+                    "Unable to remove an unrequested output safely.",
+                    details={"path": str(path), "reason": str(exc)},
+                ) from exc
+        return tuple(delivered)
+
+    @staticmethod
+    def _failure_result(
+        started_at,
+        input_metadata,
+        model_artifact,
+        request: SeparationRequest,
+        exc: StemLabError,
+    ):
         return SeparationResult(
-            schema_version=1,
+            schema_version=2,
             success=False,
             started_at=started_at,
             completed_at=_utc_now(),
@@ -277,6 +353,9 @@ class SeparationService:
             backend=None,
             device=None,
             timings=None,
+            requested_roles=tuple(request.requested_roles or ()),
+            inferred_roles=(),
+            produced_roles=(),
             stems=(),
             warnings=(),
             error=SeparationErrorInfo(

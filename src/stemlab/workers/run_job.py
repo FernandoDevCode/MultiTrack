@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 from pathlib import Path
 import sys
 
-from stemlab.app import SeparationService, build_request
-from stemlab.domain import OutputFormat
-from stemlab.separation.audio_separator_adapter import AudioSeparatorBackend
 from stemlab.workers.protocol import encode_event
 
 
@@ -20,7 +18,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--mode", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--format", choices=("wav", "flac"), required=True)
+    parser.add_argument("--format", choices=("wav", "flac", "mp3"), required=True)
+    parser.add_argument("--device", choices=("auto", "cuda", "cpu"), default="auto")
+    parser.add_argument("--stem", action="append", default=None)
     return parser
 
 
@@ -31,6 +31,15 @@ def _emit(event_type: str, message: str, payload=None) -> None:
 def main(argv: list[str] | None = None) -> int:
     configure_worker_stdout()
     args = build_parser().parse_args(argv)
+    if args.device == "cpu":
+        # audio-separator 0.47.0 selects CUDA during construction whenever Torch
+        # can see it. This must happen before importing the adapter (and Torch).
+        os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
+    from stemlab.app import SeparationService, build_request
+    from stemlab.domain import DevicePolicy, OutputFormat
+    from stemlab.separation.audio_separator_adapter import AudioSeparatorBackend
+
     repo_root = Path(__file__).resolve().parents[3]
     _emit("started", "Worker iniciado.", {"output_dir": str(args.output.resolve())})
     try:
@@ -40,13 +49,24 @@ def main(argv: list[str] | None = None) -> int:
             mode_id=args.mode,
             output_dir=args.output,
             output_format=OutputFormat(args.format.upper()),
+            device_policy=DevicePolicy(args.device),
+            requested_roles=None if args.stem is None else tuple(args.stem),
         )
-        _emit("status", "Validando modelo e executando separação CUDA.")
+        if args.device == "cpu":
+            status = "CPU selecionada. A separação pode ser lenta; executando em FP32."
+        elif args.device == "cuda":
+            status = "Validando modelo e executando separação CUDA obrigatória."
+        else:
+            status = "Detectando CUDA no worker; sem GPU disponível, será usada CPU em FP32."
+        _emit("status", status)
         backend = AudioSeparatorBackend(
             models_dir=repo_root / "models",
             ffmpeg_bin=repo_root / "tools" / "ffmpeg" / "bin",
+            on_progress=lambda progress: _emit("progress", "", progress.to_dict()),
         )
-        result = SeparationService(backend).separate(request)
+        result = SeparationService(
+            backend, on_progress=lambda progress: _emit("progress", "", progress.to_dict())
+        ).separate(request)
         payload = {"result": result.to_dict(), "output_dir": str(args.output.resolve())}
         if not result.success:
             message = result.error.message if result.error else "Falha sem detalhe estruturado."

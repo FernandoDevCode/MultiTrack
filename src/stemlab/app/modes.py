@@ -91,6 +91,8 @@ def build_request(
     mode_id: str,
     output_dir: Path,
     output_format: OutputFormat,
+    device_policy: DevicePolicy = DevicePolicy.AUTO,
+    requested_roles: tuple[str, ...] | None = None,
 ) -> SeparationRequest:
     mode = get_mode(mode_id)
     return SeparationRequest(
@@ -98,9 +100,10 @@ def build_request(
         model=mode.model_spec(repo_root),
         output_dir=output_dir,
         output_format=output_format,
-        device_policy=DevicePolicy.CUDA_REQUIRED,
-        use_autocast=True,
+        device_policy=device_policy,
+        use_autocast=device_policy is not DevicePolicy.CPU_REQUIRED,
         expected_roles=mode.expected_roles,
+        requested_roles=requested_roles,
     )
 
 
